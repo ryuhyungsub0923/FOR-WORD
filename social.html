@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FOR:WORD — Social (Chat)</title>
+
+  <!-- Pretendard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"/>
+
+  <!-- Tailwind (dev only) -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Pretendard','system-ui','sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+
+  <style>
+    :root{
+      --sb-nav-top: rgba(30,31,31,0.9);
+      --sb-nav-bottom: #848C95;
+
+      --sb-main-top: #2C2C2C;
+      --sb-main-bottom: #929292;
+
+      --sidebar-w: 212px;
+      --sidebar-w-collapsed: 68px;
+      --mobile-nav-h: 64px;
+
+      --feed-card-min-h: 140px;
+
+      /* Chat theme */
+      --bubble-me: #FEE500;            /* 카톡 느낌의 옐로우 */
+      --bubble-me-text: #181600;
+      --bubble-them: #FFFFFF;
+      --bubble-them-text: #222;
+      --chat-bg: #F6F6F6;              /* 카드 내부 채팅 배경 */
+      --chat-border: rgba(0,0,0,0.08);
+    }
+
+    body{ overflow:hidden; }
+    .tap-highlight-clear{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
+
+    .nav-label{ font-size:14px; font-weight:400; line-height:1.3; letter-spacing:-0.02em; color:rgba(255,255,255,0.7); font-family:Pretendard, system-ui, sans-serif; }
+    .nav-label-active{ color:#fff; font-weight:500; }
+
+    .sidebar{
+      width:var(--sidebar-w);
+      background: linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%);
+      transition: width 0.18s ease;
+    }
+    .sidebar[data-collapsed="true"]{ width:var(--sidebar-w-collapsed); }
+
+    .brand-text{ font-size:18px; font-weight:600; line-height:1.2; letter-spacing:-0.02em; color:#fff; white-space:nowrap; }
+    .sidebar[data-collapsed="true"] .brand-text{ display:none; }
+
+    .brand-wrapper{ display:flex; align-items:center; justify-content:space-between; width:100%; position:relative; }
+    .brand-left{ display:flex; align-items:center; gap:12px; cursor:pointer; width:auto; }
+    .sidebar[data-collapsed="true"] .brand-left{ justify-content:center; width:100%; gap:0 !important; }
+
+    .logo-wrapper{ flex-shrink:0; width:32px; height:32px; border-radius:6px; background-color:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .logo-wrapper img{ width:100%; height:100%; object-fit:contain; }
+    .sidebar[data-collapsed="true"] .logo-wrapper{ display:none; }
+
+    .expand-icon-wrapper{ flex-shrink:0; width:32px; height:32px; border-radius:6px; background-color:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); display:none; align-items:center; justify-content:center; }
+    .sidebar[data-collapsed="true"] .expand-icon-wrapper{ display:flex; }
+
+    .brand-right{ flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .sidebar[data-collapsed="true"] .brand-right{ display:none; }
+
+    .collapse-btn{ width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background-color:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); transition:background-color .12s ease; cursor:pointer; }
+    .collapse-btn:hover{ background-color:rgba(255,255,255,0.15); }
+    .collapse-icon{ transition:transform .18s ease; }
+    .sidebar[data-collapsed="true"] .collapse-icon{ transform:rotate(180deg); }
+
+    .sidebar-nav-container{ display:flex; flex-direction:column; flex-grow:1; padding:24px 16px; }
+    .sidebar[data-collapsed="true"] .sidebar-nav-container{ padding-left:10px; padding-right:10px; }
+
+    .sidebar-nav-btn{
+      width:180px; height:48px; display:flex; align-items:center; border-radius:0.5rem;
+      padding:0 12px; gap:10px; text-align:left; transition:background-color .12s ease,color .12s ease;
+      text-decoration:none; color:inherit;
+    }
+    .sidebar-nav-btn-active{ background-color:rgba(255,255,255,0.1); }
+    .sidebar-nav-btn:hover{ background-color:rgba(255,255,255,0.1); }
+
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn{ width:48px; justify-content:center; gap:0; padding-left:0; padding-right:0; }
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn span.nav-label{ display:none; }
+
+    .sidebar-divider{ width:100%; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0; }
+    .sidebar[data-collapsed="true"] .sidebar-divider{ margin:12px 0; }
+
+    .profile-wrap{ padding:16px; }
+    .sidebar[data-collapsed="true"] .profile-wrap{ padding-left:10px; padding-right:10px; }
+
+    .profile-row{ display:flex; align-items:center; gap:12px; }
+    .profile-icon{ width:32px; height:32px; border-radius:6px; background-color:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .profile-icon img{ width:100%; height:100%; object-fit:contain; }
+    .profile-meta{ display:flex; flex-direction:column; line-height:1.2; }
+    .sidebar[data-collapsed="true"] .profile-meta{ display:none; }
+
+    .profile-border{ border-top:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); font-size:12px; }
+
+    .main-bg{
+      background:linear-gradient(to bottom, var(--sb-main-top) 0%, var(--sb-main-bottom) 100%);
+    }
+    .mobile-nav-bg{
+      background:linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%);
+    }
+    .mobile-nav-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; line-height:1; text-decoration:none; color:rgba(255,255,255,0.7); }
+    .mobile-nav-btn-active{ color:#fff; }
+
+    .page-inner{ max-width:1100px; width:100%; display:flex; flex-direction:column; }
+    .hero-title{ color:#fff; font-size:24px; font-weight:500; line-height:1.5; letter-spacing:-0.02em; white-space:pre-line; }
+
+    /* ===== CHAT CARD ===== */
+    .feed-col{ width:100%; max-width:760px; display:flex; flex-direction:column; gap:16px; }
+    .feed-card{
+      background:#FFFFFF; border-radius:8px; border:1px solid var(--chat-border);
+      box-shadow:0 24px 60px rgba(0,0,0,0.4);
+      color:#000; padding:0; min-height:var(--feed-card-min-h);
+      display:flex; flex-direction:column;
+    }
+
+    .chat-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px; border-bottom:1px solid var(--chat-border);
+    }
+    .chat-title{ font-size:14px; font-weight:600; color:#111; letter-spacing:-0.02em; }
+    .chat-sub{ font-size:12px; color:#666; }
+
+    .chat-scroll{
+      background:var(--chat-bg);
+      position:relative;
+      overflow-y:auto;
+      -webkit-overflow-scrolling: touch;
+      padding:16px 12px 12px 12px;
+      height: min(68vh, 720px);
+    }
+
+    .day-sep{
+      position:sticky; top:8px; width:max-content; margin:0 auto 12px auto;
+      background:#EDEDED; color:#555; font-size:11px; border-radius:999px; padding:6px 10px;
+      border:1px solid rgba(0,0,0,0.05);
+    }
+
+    .msg-row{ display:flex; gap:8px; margin:6px 0; align-items:flex-end; }
+    .msg-row.them{ justify-content:flex-start; }
+    .msg-row.me{ justify-content:flex-end; }
+
+    .avatar{
+      width:28px; height:28px; border-radius:8px; background:#EEE; border:1px solid #D8D8D8;
+      display:flex; align-items:center; justify-content:center; font-size:12px; color:#333; font-weight:600; flex-shrink:0;
+    }
+
+    .bubble-wrap{ max-width:72%; display:flex; flex-direction:column; gap:4px; }
+    .name{ font-size:11px; color:#666; margin-left:6px; }
+
+    .bubble{
+      position:relative;
+      padding:10px 12px;
+      border-radius:14px;
+      font-size:14px; line-height:1.45; letter-spacing:-0.01em; word-break:break-word; white-space:pre-wrap;
+      border:1px solid rgba(0,0,0,0.06);
+      box-shadow:0 2px 0 rgba(0,0,0,0.04);
+    }
+    .them .bubble{ background:var(--bubble-them); color:var(--bubble-them-text); }
+    .me .bubble{ background:var(--bubble-me); color:var(--bubble-me-text); }
+
+    /* tails */
+    .them .bubble:after{
+      content:''; position:absolute; left:-4px; bottom:0;
+      width:10px; height:10px; background:var(--bubble-them); border-left:1px solid rgba(0,0,0,0.06); border-bottom:1px solid rgba(0,0,0,0.06);
+      transform:translateY(-2px) rotate(45deg); border-bottom-left-radius:2px;
+    }
+    .me .bubble:after{
+      content:''; position:absolute; right:-4px; bottom:0;
+      width:10px; height:10px; background:var(--bubble-me); border-right:1px solid rgba(0,0,0,0.06); border-bottom:1px solid rgba(0,0,0,0.06);
+      transform:translateY(-2px) rotate(45deg); border-bottom-right-radius:2px;
+    }
+
+    .meta{
+      display:flex; align-items:center; gap:6px;
+      font-size:10px; color:#777; margin:0 6px;
+    }
+    .meta .read{ color:#3BA55D; } /* 읽음 표시 색 */
+
+    .typing{
+      display:flex; align-items:center; gap:8px; margin:8px 0 2px;
+      color:#666; font-size:12px;
+    }
+    .dots{ display:inline-flex; gap:3px; }
+    .dot{
+      width:4px; height:4px; border-radius:999px; background:#999; opacity:.35; animation: blink 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2){ animation-delay:.15s; }
+    .dot:nth-child(3){ animation-delay:.3s; }
+    @keyframes blink{ 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+    .chat-input{
+      border-top:1px solid var(--chat-border);
+      background:#fff; display:flex; align-items:flex-end; gap:8px; padding:10px;
+    }
+    .tool-btn{
+      width:32px; height:32px; border-radius:8px; background:#F1F1F1; border:1px solid #E4E4E4;
+      display:flex; align-items:center; justify-content:center; font-size:14px; color:#444; flex-shrink:0;
+    }
+    .send-btn{
+      padding:0 12px; height:32px; border-radius:8px; background:#111; color:#fff; font-size:13px; display:flex; align-items:center; justify-content:center; border:1px solid #000;
+      transition:opacity .12s ease;
+    }
+    .send-btn:disabled{ opacity:.4; cursor:not-allowed; }
+    .msgbox{
+      flex:1; max-height:120px; min-height:24px; padding:8px 10px; border-radius:8px; border:1px solid #E5E5E5; background:#fff; resize:none; outline:none;
+      font-size:14px; line-height:1.4; color:#111; overflow:auto;
+    }
+
+    /* small helper for link text */
+    .bubble a{ color:#0B7CCB; text-decoration:underline; }
+  </style>
+</head>
+
+<body class="font-sans text-white bg-[var(--sb-main-top)] min-h-screen flex flex-col md:flex-row">
+
+  <!-- LEFT SIDEBAR -->
+  <aside id="sidebar" class="sidebar hidden md:flex flex-col shrink-0 select-none" data-collapsed="false">
+    <div class="brand-area border-b border-white/10 px-[16px] py-[20px]">
+      <div class="brand-wrapper">
+        <div id="brandToggleArea" class="brand-left">
+          <div class="logo-wrapper"><img src="home_assets/logo.png" alt="FOR:WORD"/></div>
+          <div class="expand-icon-wrapper">
+            <svg class="w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="flex flex-col"><div class="brand-text">FOR:WORD</div></div>
+        </div>
+        <div class="brand-right">
+          <div id="collapseToggle" class="collapse-btn tap-highlight-clear" aria-label="Collapse sidebar">
+            <svg class="collapse-icon w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-container text-sm">
+      <a href="home.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Main_icon.svg" alt="Main" class="w-[20px] h-[20px] object-contain"/>
+        <span class="nav-label">Main</span>
+      </a>
+      <a href="editor.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Editor_icon.svg" alt="Editor View" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Editor View</span>
+      </a>
+      <a href="projects.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Projects</span>
+      </a>
+      <a href="graph.html" class="sidebar-nav-btn tap-highlight-clear mb-[16px] hover:bg-white/10">
+        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Knowledge Graph</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <a href="social.html" class="sidebar-nav-btn sidebar-nav-btn-active tap-highlight-clear mb-[4px] bg-white/10 hover:bg-white/15">
+        <img src="home_assets/Social_icon.svg" alt="Social" class="w-[20px] h-[20px] object-contain"/>
+        <span class="nav-label nav-label-active">Social</span>
+      </a>
+    </nav>
+
+    <div class="profile-border text-xs text-white/60">
+      <div class="profile-wrap">
+        <div class="profile-row">
+          <div class="profile-icon"><img src="home_assets/Profile_icon.svg" alt="Profile"/></div>
+          <div class="profile-meta">
+            <span class="text-white/90 text-[13px] font-medium">hs r</span>
+            <span class="text-white/50 text-[11px]">Workspace</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE NAV -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg" style="height:var(--mobile-nav-h);">
+    <a href="home.html" class="mobile-nav-btn">
+      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain"/>
+      <span>Main</span>
+    </a>
+    <a href="editor.html" class="mobile-nav-btn">
+      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Editor</span>
+    </a>
+    <a href="projects.html" class="mobile-nav-btn">
+      <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Projects</span>
+    </a>
+    <a href="graph.html" class="mobile-nav-btn">
+      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Graph</span>
+    </a>
+    <a href="social.html" class="mobile-nav-btn mobile-nav-btn-active">
+      <img src="home_assets/Social_icon.svg" alt="Social" class="w-[24px] h-[24px] object-contain"/>
+      <span>Social</span>
+    </a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col relative w-full min-h-screen md:min-h-0 md:h-screen overflow-hidden text-white main-bg">
+    <section class="flex-1 overscroll-contain pb-[calc(var(--mobile-nav-h)+16px)] md:pb-[32px]"
+      style="overflow-y:hidden; padding-top:15px; padding-left:40px; padding-right:32px;">
+      <div class="page-inner">
+
+        <!-- HEADER -->
+        <header class="mb-[24px] md:mb-[16px] flex items-center justify-between">
+          <div class="hero-title">Social
+Build in public.</div>
+
+          <!-- Quick identity switch (dev/demo) -->
+          <div class="hidden md:flex items-center gap-8">
+            <div class="text-white/70 text-sm">Room: <span id="roomLabel" class="text-white">feedback</span></div>
+            <div class="text-white/70 text-sm">Me: <span id="meLabel" class="text-white font-medium">hs r</span></div>
+          </div>
+        </header>
+
+        <!-- CHAT CARD -->
+        <section class="feed-col">
+          <article class="feed-card">
+            <div class="chat-header">
+              <div>
+                <div class="chat-title">피드백 채팅</div>
+                <div class="chat-sub">프로덕트 아이디어/버그/요청 실시간 공유</div>
+              </div>
+
+              <!-- 작은 환경설정: 이름 바꾸기 -->
+              <div class="flex items-center gap-2">
+                <input id="nameInput" type="text" placeholder="표시 이름" class="hidden md:block text-[13px] border rounded px-2 py-1" style="width:160px"/>
+                <button id="nameSaveBtn" class="hidden md:block text-[12px] px-2 py-1 rounded border border-black/10">적용</button>
+              </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="chatScroll" class="chat-scroll"></div>
+
+            <!-- Typing indicator -->
+            <div id="typingBar" class="px-3 pt-1 pb-2 hidden">
+              <div class="typing">
+                <div class="avatar" id="typingAvatar">??</div>
+                <div class="flex items-center gap-2"><span id="typingName">누군가</span> 입력 중 <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="chat-input">
+              <button id="attachBtn" class="tool-btn" title="첨부(+)" aria-label="첨부">＋</button>
+              <textarea id="msgBox" rows="1" class="msgbox" placeholder="메시지를 입력하세요 (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
+              <button id="sendBtn" class="send-btn" disabled>전송</button>
+            </div>
+          </article>
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* ===== Sidebar collapse/expand ===== */
+    const sidebar = document.getElementById('sidebar');
+    const collapseToggle = document.getElementById('collapseToggle');
+    const brandToggleArea = document.getElementById('brandToggleArea');
+    if(collapseToggle){
+      collapseToggle.addEventListener('click', () => sidebar.setAttribute('data-collapsed', 'true'));
+    }
+    if(brandToggleArea){
+      brandToggleArea.addEventListener('click', () => {
+        if (sidebar.getAttribute('data-collapsed') === 'true') sidebar.setAttribute('data-collapsed', 'false');
+      });
+    }
+
+    /* ===== Chat state (no backend required) =====
+       - localStorage로 메시지 영구 저장
+       - BroadcastChannel로 다중 탭/창 실시간 동기화
+       - WebSocket 서버가 있다면 wsUrl 지정 시 자동 연결
+    */
+    const qs = new URLSearchParams(location.search);
+    const room = (qs.get('room') || 'feedback').trim();               // ?room=xxx
+    const storageKey = `fw_chat_${room}`;
+    const channel = 'fw_chat_channel_' + room;
+    const bc = ('BroadcastChannel' in self) ? new BroadcastChannel(channel) : null;
+
+    // (선택) WebSocket 서버 주소: 예시 ws://localhost:8787
+    const wsUrl = '';  // 필요 시 여기 채우면 사용됨.
+    let ws = null;
+
+    // 사용자 이름 (URL > localStorage > 기본값)
+    const defaultName = qs.get('name') || localStorage.getItem('fw_chat_name') || 'hs r';
+
+    // DOM
+    const chatScroll = document.getElementById('chatScroll');
+    const msgBox = document.getElementById('msgBox');
+    const sendBtn = document.getElementById('sendBtn');
+    const attachBtn = document.getElementById('attachBtn');
+    const meLabel = document.getElementById('meLabel');
+    const roomLabel = document.getElementById('roomLabel');
+    const nameInput = document.getElementById('nameInput');
+    const nameSaveBtn = document.getElementById('nameSaveBtn');
+
+    const typingBar = document.getElementById('typingBar');
+    const typingName = document.getElementById('typingName');
+    const typingAvatar = document.getElementById('typingAvatar');
+
+    meLabel.textContent = defaultName;
+    roomLabel.textContent = room;
+    if(nameInput){ nameInput.value = defaultName; }
+
+    // 유틸
+    const now = () => Date.now();
+    const pad2 = (n)=> n<10? '0'+n : ''+n;
+    const toDateKey = (t) => {
+      const d = new Date(t);
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    };
+    const fmtTime = (t) => {
+      const d = new Date(t);
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    };
+    const fmtDayK = (t) => {
+      const d = new Date(t);
+      const wd = ['일','월','화','수','목','금','토'][d.getDay()];
+      return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${wd}요일`;
+    };
+    const initialMessages = () => ([
+      { id: crypto.randomUUID(), room, author:'system', text:`대화방이 생성되었습니다.`, ts: now()-1000*60*60*3, system:true },
+      { id: crypto.randomUUID(), room, author:'hs r', text:`오늘은 에디터 하이라이트 → 그래프 노드 연결 흐름 만들었어.\n우린 '메모앱'이 아니라 '사고 구조 편집기'라는 걸 증명 중.`, ts: now()-1000*60*60*2+12000 },
+      { id: crypto.randomUUID(), room, author:'채희 (PM)', text:`커플 가계부 사용자 인터뷰 정리했어.\n요구는 숫자 관리보다 ‘합의 기록’이더라.`, ts: now()-1000*60*60+45000 },
+    ]);
+
+    function loadMessages(){
+      const raw = localStorage.getItem(storageKey);
+      if(!raw){
+        const seed = initialMessages();
+        localStorage.setItem(storageKey, JSON.stringify(seed));
+        return seed;
+      }
+      try { return JSON.parse(raw) || []; } catch(e){ return []; }
+    }
+    function saveMessages(list){ localStorage.setItem(storageKey, JSON.stringify(list)); }
+    function setMyName(name){
+      localStorage.setItem('fw_chat_name', name);
+      meLabel.textContent = name;
+      if(nameInput) nameInput.value = name;
+    }
+
+    // 읽음 관리: 마지막으로 읽은 시각 브로드캐스트
+    const readKey = `fw_chat_read_${room}`;
+    function setLastRead(ts){
+      localStorage.setItem(readKey, String(ts));
+      // 다른 탭에게 통지
+      postBroadcast({type:'read', ts, who: defaultName});
+      // 서버에도 통지(옵션)
+      if(ws && ws.readyState===1){ ws.send(JSON.stringify({type:'read', ts, who: defaultName, room})); }
+    }
+    function getLastRead(){ return Number(localStorage.getItem(readKey) || 0); }
+
+    // 타이핑 표시 타이머
+    let typingTimeout = null;
+    function showTyping(name){
+      typingName.textContent = name;
+      typingAvatar.textContent = initials(name);
+      typingBar.classList.remove('hidden');
+      if(typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(()=> typingBar.classList.add('hidden'), 1500);
+    }
+
+    // 메시지 렌더링
+    function initials(name){
+      const parts = (name||'').trim().split(/\s+/);
+      if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
+      return (parts[0][0]||'').toUpperCase() + (parts[1][0]||'').toUpperCase();
+    }
+    function linkify(text){
+      return text.replace(
+        /((https?:\/\/)?([-\w]+\.)+[\w]{2,}(\/[^\s]*)?)/g,
+        (m)=> {
+          const url = m.startsWith('http')? m : `https://${m}`;
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer">${m}</a>`;
+        }
+      );
+    }
+    function groupByDay(list){
+      const map = {};
+      list.forEach(m=>{
+        const k = toDateKey(m.ts);
+        (map[k] ||= []).push(m);
+      });
+      return Object.entries(map).sort(([a],[b])=> a>b?1:-1);
+    }
+    function render(){
+      const me = localStorage.getItem('fw_chat_name') || defaultName;
+      const all = loadMessages().filter(m=> m.room===room).sort((a,b)=> a.ts-b.ts);
+      const lastRead = getLastRead();
+
+      chatScroll.innerHTML = '';
+      const frag = document.createDocumentFragment();
+
+      groupByDay(all).forEach(([dayKey, items])=>{
+        const sep = document.createElement('div');
+        sep.className = 'day-sep';
+        sep.textContent = fmtDayK(items[0].ts);
+        frag.appendChild(sep);
+
+        items.forEach(m=>{
+          if(m.system){
+            const r = document.createElement('div');
+            r.className = 'flex justify-center my-2';
+            const s = document.createElement('div');
+            s.className = 'text-[11px] text-[#777] bg-[#EFEFEF] px-3 py-1 rounded-full border border-black/5';
+            s.textContent = m.text;
+            r.appendChild(s);
+            frag.appendChild(r);
+            return;
+          }
+
+          const mine = (m.author === me);
+          const row = document.createElement('div');
+          row.className = 'msg-row ' + (mine? 'me' : 'them');
+
+          if(!mine){
+            const av = document.createElement('div');
+            av.className = 'avatar';
+            av.textContent = initials(m.author);
+            row.appendChild(av);
+          }
+
+          const wrap = document.createElement('div');
+          wrap.className = 'bubble-wrap';
+
+          if(!mine){
+            const nm = document.createElement('div');
+            nm.className = 'name';
+            nm.textContent = m.author;
+            wrap.appendChild(nm);
+          }
+
+          const bub = document.createElement('div');
+          bub.className = 'bubble';
+          bub.innerHTML = linkify(m.text);
+          wrap.appendChild(bub);
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          const time = document.createElement('span');
+          time.textContent = fmtTime(m.ts);
+          meta.appendChild(time);
+
+          if(mine){
+            const read = document.createElement('span');
+            read.className = 'read';
+            read.textContent = (lastRead && lastRead >= m.ts) ? '읽음' : '';
+            meta.appendChild(read);
+          }
+          wrap.appendChild(meta);
+
+          row.appendChild(wrap);
+          frag.appendChild(row);
+        });
+      });
+
+      chatScroll.appendChild(frag);
+      // 맨 아래로
+      chatScroll.scrollTop = chatScroll.scrollHeight + 9999;
+    }
+
+    // 메시지 전송
+    function sendMessage(text){
+      const me = localStorage.getItem('fw_chat_name') || defaultName;
+      const msg = {
+        id: crypto.randomUUID(),
+        room, author: me, text: text.trim(), ts: now()
+      };
+      const list = loadMessages();
+      list.push(msg);
+      saveMessages(list);
+      render();
+      // 읽음 갱신 (내가 보낸 시각)
+      setLastRead(msg.ts);
+
+      // 브로드캐스트
+      postBroadcast({type:'message', msg});
+      // 서버에도 전송(옵션)
+      if(ws && ws.readyState===1){ ws.send(JSON.stringify({type:'message', msg})); }
+    }
+
+    function postBroadcast(payload){
+      if(bc) bc.postMessage(payload);
+    }
+
+    // 입력창 핸들링
+    msgBox.addEventListener('input', ()=>{
+      sendBtn.disabled = msgBox.value.trim().length===0;
+      // 타이핑 신호
+      postBroadcast({type:'typing', who: (localStorage.getItem('fw_chat_name')||defaultName)});
+      if(ws && ws.readyState===1){ ws.send(JSON.stringify({type:'typing', who:(localStorage.getItem('fw_chat_name')||defaultName), room})); }
+    });
+    msgBox.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' && !e.shiftKey){
+        e.preventDefault();
+        const t = msgBox.value.trim();
+        if(t){
+          sendMessage(t);
+          msgBox.value = '';
+          sendBtn.disabled = true;
+        }
+      }
+    });
+    sendBtn.addEventListener('click', ()=>{
+      const t = msgBox.value.trim();
+      if(t){
+        sendMessage(t);
+        msgBox.value = '';
+        sendBtn.disabled = true;
+      }
+    });
+
+    // 첨부(데모)
+    attachBtn.addEventListener('click', ()=>{
+      alert('첨부 기능은 이후 파일 업로드/미디어 미리보기로 확장 예정입니다.');
+    });
+
+    // 이름 저장
+    if(nameSaveBtn){
+      nameSaveBtn.addEventListener('click', ()=>{
+        const v = (nameInput.value || '').trim();
+        if(v){ setMyName(v); render(); }
+      });
+    }
+
+    // 포커스 시 읽음 갱신
+    window.addEventListener('focus', ()=> setLastRead(now()));
+
+    // 브로드캐스트 수신
+    if(bc){
+      bc.onmessage = (ev)=>{
+        const data = ev.data || {};
+        if(data.type==='message'){
+          const list = loadMessages();
+          if(!list.find(x=>x.id===data.msg.id)){ list.push(data.msg); saveMessages(list); }
+          render();
+        }else if(data.type==='typing'){
+          if((localStorage.getItem('fw_chat_name')||defaultName)!==data.who){
+            showTyping(data.who);
+          }
+        }else if(data.type==='read'){
+          // 타 사용자 읽음은 내 메시지의 '읽음'에 반영되지는 않지만, UX상 lastRead를 올려도 무방
+          const cur = getLastRead();
+          if(data.ts > cur){ localStorage.setItem(readKey, String(data.ts)); render(); }
+        }
+      };
+    }
+
+    // (선택) WebSocket 연결
+    function connectWS(){
+      if(!wsUrl) return;
+      try{
+        ws = new WebSocket(wsUrl);
+        ws.onopen = ()=> {
+          ws.send(JSON.stringify({type:'hello', room, who:(localStorage.getItem('fw_chat_name')||defaultName)}));
+        };
+        ws.onmessage = (e)=>{
+          try{
+            const data = JSON.parse(e.data);
+            if(data.type==='message'){
+              const list = loadMessages();
+              if(!list.find(x=>x.id===data.msg.id)){ list.push(data.msg); saveMessages(list); }
+              render();
+              if(data.msg.author !== (localStorage.getItem('fw_chat_name')||defaultName)){
+                showTyping(data.msg.author); // 잠깐 표시
+              }
+            }else if(data.type==='typing'){
+              if(data.who !== (localStorage.getItem('fw_chat_name')||defaultName)) showTyping(data.who);
+            }else if(data.type==='read'){
+              const cur = getLastRead();
+              if(data.ts > cur){ localStorage.setItem(readKey, String(data.ts)); render(); }
+            }
+          }catch(err){}
+        };
+        ws.onclose = ()=> { setTimeout(connectWS, 1500); };
+      }catch(e){}
+    }
+    connectWS();
+
+    // 최초 렌더
+    if(!localStorage.getItem('fw_chat_name')) setMyName(defaultName);
+    if(!localStorage.getItem(readKey)) setLastRead(now());
+    render();
+
+    // 모바일 키보드 올라올 때 스크롤 유지
+    window.addEventListener('resize', ()=> {
+      chatScroll.scrollTop = chatScroll.scrollHeight + 9999;
+    });
+  </script>
+</body>
+</html>

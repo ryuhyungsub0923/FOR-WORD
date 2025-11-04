@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FOR:WORD — Home Frame no-scroll</title>
+
+  <!-- Pretendard font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"/>
+
+  <!-- Tailwind (dev only) -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: { fontFamily: { sans: ['Pretendard','system-ui','sans-serif'] } }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+
+  <style>
+    :root{
+      --sb-nav-top: rgba(30,31,31,0.9);
+      --sb-nav-bottom: #848C95;
+
+      --sb-main-top: #2C2C2C;
+      --sb-main-bottom: #929292;
+
+      --sidebar-w: 212px;
+      --sidebar-w-collapsed: 68px;
+      --mobile-nav-h: 64px;
+
+      --board-w-desktop: 1050px;
+      --board-h-min: 720px;
+
+      --sidepanel-h: 770px;
+    }
+
+    body{ overflow:hidden; }
+    .tap-highlight-clear{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
+
+    .nav-label{
+      font-family: Pretendard, system-ui, sans-serif;
+      font-size:14px; font-weight:400; line-height:1.3; letter-spacing:-0.02em; color:rgba(255,255,255,0.7);
+    }
+    .nav-label-active{ color:#fff; font-weight:500; }
+
+    .sidebar{
+      width:var(--sidebar-w);
+      background: linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%);
+      transition: width 0.18s ease;
+    }
+    .sidebar[data-collapsed="true"]{ width:var(--sidebar-w-collapsed); }
+
+    .brand-text{
+      font-family: Pretendard, system-ui, sans-serif;
+      font-size:18px; font-weight:600; line-height:1.2; letter-spacing:-0.02em; color:#fff; white-space:nowrap;
+    }
+    .sidebar[data-collapsed="true"] .brand-text{ display:none; }
+
+    .brand-wrapper{ display:flex; align-items:center; justify-content:space-between; width:100%; position:relative; }
+    .brand-left{ display:flex; align-items:center; gap:12px; cursor:pointer; width:auto; }
+    .sidebar[data-collapsed="true"] .brand-left{ justify-content:center; width:100%; gap:0 !important; }
+
+    .logo-wrapper{
+      flex-shrink:0; width:32px; height:32px; border-radius:6px;
+      background-color:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .logo-wrapper img{ width:100%; height:100%; object-fit:contain; }
+    .sidebar[data-collapsed="true"] .logo-wrapper{ display:none; }
+
+    .expand-icon-wrapper{
+      flex-shrink:0; width:32px; height:32px; border-radius:6px;
+      background-color:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+      display:none; align-items:center; justify-content:center;
+    }
+    .sidebar[data-collapsed="true"] .expand-icon-wrapper{ display:flex; }
+
+    .brand-right{ flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .sidebar[data-collapsed="true"] .brand-right{ display:none; }
+
+    .collapse-btn{
+      width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+      background-color:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); transition:background-color .12s ease; cursor:pointer;
+    }
+    .collapse-btn:hover{ background-color:rgba(255,255,255,0.15); }
+    .collapse-icon{ transition:transform .18s ease; }
+    .sidebar[data-collapsed="true"] .collapse-icon{ transform:rotate(180deg); }
+
+    .sidebar-nav-container{ display:flex; flex-direction:column; flex-grow:1; padding:24px 16px; }
+    .sidebar[data-collapsed="true"] .sidebar-nav-container{ padding-left:10px; padding-right:10px; }
+
+    .sidebar-nav-btn{
+      width:180px; height:48px; display:flex; align-items:center; border-radius:0.5rem; padding:0 12px; gap:10px; text-align:left;
+      transition:background-color .12s ease,color .12s ease; text-decoration:none; color:inherit;
+    }
+    .sidebar-nav-btn-active{ background-color:rgba(255,255,255,0.1); }
+    .sidebar-nav-btn:hover{ background-color:rgba(255,255,255,0.1); }
+
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn{ width:48px; padding-left:0; padding-right:0; justify-content:center; gap:0; }
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn span.nav-label{ display:none; }
+
+    .sidebar-divider{ width:100%; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0; }
+    .sidebar[data-collapsed="true"] .sidebar-divider{ margin:12px 0; }
+
+    .profile-wrap{ padding:16px; }
+    .sidebar[data-collapsed="true"] .profile-wrap{ padding:16px 10px; }
+    .profile-row{ display:flex; align-items:center; gap:12px; }
+    .profile-icon{
+      width:32px; height:32px; border-radius:6px; background-color:rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .profile-icon img{ width:100%; height:100%; object-fit:contain; }
+    .profile-meta{ display:flex; flex-direction:column; line-height:1.2; }
+    .sidebar[data-collapsed="true"] .profile-meta{ display:none; }
+    .profile-border{ border-top:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); font-size:12px; }
+
+    .main-bg{ background:linear-gradient(to bottom, var(--sb-main-top) 0%, var(--sb-main-bottom) 100%); }
+    .mobile-nav-bg{ background: linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%); }
+
+    .mobile-nav-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; line-height:1; color:rgba(255,255,255,0.7); text-decoration:none; }
+    .mobile-nav-btn-active{ color:#fff; }
+
+    .page-inner{ max-width:1100px; width:100%; display:flex; flex-direction:column; }
+    .hero-title{ color:#fff; font-size:24px; font-weight:500; line-height:1.5; letter-spacing:-0.02em; white-space:pre-line; }
+
+    .board-shell{ width:100%; max-width:100%; flex-shrink:0; }
+    @media (min-width:768px){ .board-shell{ width:var(--board-w-desktop); max-width:100%; } }
+
+    .board-card{
+      background:#F3F3F3; border-radius:8px; color:#000; box-shadow:0 24px 60px rgba(0,0,0,0.4);
+      border:1px solid rgba(255,255,255,0.05); padding:20px; display:flex; flex-direction:column; min-height:var(--board-h-min);
+    }
+
+    .board-head{ width:100%; display:flex; align-items:flex-start; justify-content:space-between; }
+    .board-title{ font-size:18px; font-weight:600; line-height:1.4; letter-spacing:-0.02em; color:#000; }
+    .board-more{ font-size:14px; font-weight:400; line-height:1.4; letter-spacing:-0.02em; color:#000; text-decoration:underline; background:none; border:0; padding:0; cursor:pointer; }
+
+    .side-col{ width:100%; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+    @media (min-width:768px){ .side-col{ width:400px; margin-top:-90px; } }
+
+    .side-box{
+      width:100%; background:#fff; border-radius:8px; color:#000; font-size:14px; font-weight:400; line-height:1.4; letter-spacing:-0.02em;
+      display:flex; align-items:center; justify-content:center; padding:12px 16px; min-height:52px;
+    }
+    .side-box-search{ justify-content:center; }
+    .side-box-large{ justify-content:flex-start; align-items:flex-start; height:var(--sidepanel-h); padding:16px; flex-direction:column; gap:12px; }
+
+    .search-shell{
+      width:100%; height:32px; border:1px solid #BFBFBF; border-radius:8px; background:#fff;
+      display:flex; align-items:center; justify-content:space-between; padding:0 12px;
+    }
+    .search-left{ display:flex; align-items:center; gap:8px; min-width:0; }
+    .search-placeholder-text{ font-size:13px; line-height:1.2; font-weight:400; letter-spacing:-0.02em; color:#666; white-space:nowrap; }
+    .search-clear-btn{ flex-shrink:0; width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:transparent; border:0; padding:0; cursor:pointer; }
+    .search-clear-btn img{ width:20px; height:20px; object-fit:contain; display:block; }
+
+    /* ----- 캘린더 / 할 일 패널 ----- */
+    .cal-header-row{ width:100%; display:flex; align-items:center; justify-content:flex-start; gap:8px; font-size:14px; line-height:1.4; font-weight:500; color:#000; }
+    .cal-nav-btn{ border:0; background:transparent; padding:0; margin:0; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; color:#000; cursor:pointer; }
+    .cal-current-month{ font-size:14px; line-height:1.4; font-weight:500; color:#000; letter-spacing:-0.02em; min-width:32px; text-align:center; }
+
+    .cal-weekdays{ display:flex; align-items:center; justify-content:space-between; width:100%; font-size:12px; line-height:1.2; font-weight:400; color:#6B6B6B; letter-spacing:-0.02em; margin-top:12px; }
+    .cal-weekdays span{ flex:1; text-align:center; }
+
+    /* ✅ 하나의 그리드가 주→월로 확장되며 변환 */
+    .cal-week{ position:relative; width:100%; }
+    .cal-grid-wrap{
+      width:100%;
+      overflow:hidden;
+      transition: height .28s ease;  /* 높이만 애니메이션 */
+      will-change: height;
+      margin-top:12px;
+    }
+    #calGrid{
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:4px;
+      grid-auto-rows:36px;
+      transition: transform .28s ease; /* 주 보이기용 슬라이드 */
+    }
+    .grid-date-btn{
+      width:100%; height:36px; border:0; border-radius:8px; background:transparent; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:13px; color:#000;
+    }
+    .grid-date-btn.is-today{ outline:1px solid #6D6C6C; }
+    .grid-date-btn.is-selected{ background:#6D6C6C; color:#fff; }
+    .grid-date-btn.is-other{ color:#9B9B9B; }
+
+    /* ✅ 단순 v 아이콘 (박스 제거) — 아래로 3.2px 이동 */
+    .cal-mode-toggle{
+      position:absolute; right:2px; bottom:-20px;  /* -2px 에서 3.2px 더 아래 */
+      background:transparent; border:0; padding:2px; cursor:pointer; line-height:0;
+    }
+    .cal-mode-icon{
+      width:18px; height:18px; opacity:.9; transition: transform .18s ease, opacity .18s ease;
+    }
+    .cal-mode-toggle[aria-expanded="true"] .cal-mode-icon{
+      transform: rotate(180deg); /* 월간 모드일 때 ∧ */
+    }
+
+    .cal-divider{ width:100%; height:1px; background:#DCDCDC; margin-top:16px; margin-bottom:8px; }
+
+    .panel-section-header{ width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .panel-section-header.small{ margin-top:16px; }
+    .panel-section-title{ font-size:16px; line-height:1.4; font-weight:600; color:#000; letter-spacing:-0.02em; }
+    .panel-section-title.small{ font-size:16px; font-weight:600; }
+
+    .task-add-btn{ border:0; background:transparent; color:#000; font-size:18px; line-height:1; font-weight:400; cursor:pointer; padding:4px 8px; }
+    .task-add-btn.small{ font-size:16px; }
+    .task-list{ width:100%; }
+
+    .task-card{
+      width:100%; border:1px solid #E5E5E5; background:#FAFAFA; border-radius:6px; position:relative;
+      display:flex; align-items:flex-start; justify-content:space-between; padding:12px 40px 12px 16px; margin-bottom:8px;
+    }
+    .task-del-btn{ position:absolute; top:8px; right:8px; border:0; background:transparent; color:#9E9E9E; font-size:12px; line-height:1; cursor:pointer; padding:0; }
+    .task-left{ display:flex; align-items:flex-start; gap:10px; min-width:0; flex:1; }
+    .task-checkbox-input{
+      width:16px; height:16px; flex-shrink:0; appearance:none; outline:none; cursor:pointer;
+      background:#F5F5F5; border:1px solid #CFCFCF; border-radius:4px; position:relative;
+    }
+    .task-checkbox-input:checked{ background:#2C2C2C; border-color:#2C2C2C; }
+    .task-checkbox-input:checked::after{
+      content:""; position:absolute; left:4px; top:1px; width:6px; height:10px; border-right:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(45deg);
+    }
+    .task-text{ font-size:14px; line-height:1.4; font-weight:400; color:#4A4A4A; letter-spacing:-0.02em; outline:none; flex:1; min-width:0; white-space:normal; word-break:break-word; overflow:visible; text-overflow:clip; }
+    .task-right{ flex-shrink:0; display:flex; align-items:center; gap:12px; }
+    .task-arrow img{ width:20px; height:20px; object-fit:contain; display:block; }
+
+    .panel-divider{ width:100%; height:1px; background:#E5E5E5; margin-top:8px; margin-bottom:8px; }
+
+    /* 7-세그 시계 */
+    :root{ --seg-on:#ffffff; --seg-off:rgba(255,255,255,0.15); }
+    #sbClockContainer .digit{
+      position:relative; width:32px; height:56px; flex-shrink:0; border-radius:4px; background:rgba(0,0,0,0.25); box-shadow:0 8px 16px rgba(0,0,0,0.6);
+    }
+    #sbClockContainer .digit + .digit{ margin-left:6px; }
+    #sbClockContainer .seg{ position:absolute; background:var(--seg-off); border-radius:2px; box-shadow:0 0 0 rgba(3,199,90,0); }
+    #sbClockContainer .seg.on{ background:var(--seg-on); box-shadow:0 0 6px var(--seg-on); }
+    #sbClockContainer .seg.a{ top:0px; left:5px; width:22px; height:5px; }
+    #sbClockContainer .seg.g{ top:25px; left:5px; width:22px; height:5px; }
+    #sbClockContainer .seg.d{ top:50px; left:5px; width:22px; height:5px; }
+    #sbClockContainer .seg.b{ top:3px; left:27px; width:5px; height:20px; }
+    #sbClockContainer .seg.c{ top:28px; left:27px; width:5px; height:20px; }
+    #sbClockContainer .seg.f{ top:3px; left:0px; width:5px; height:20px; }
+    #sbClockContainer .seg.e{ top:28px; left:0px; width:5px; height:20px; }
+    #sbClockColon{ position:relative; width:12px; height:56px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    #sbClockColon .colon-dot{ width:6px; height:6px; border-radius:2px; background:var(--seg-on); box-shadow:0 0 6px var(--seg-on); margin:6px 0; }
+    #sbClockColon.off .colon-dot{ opacity:0.2; background:var(--seg-off); box-shadow:0 0 0 transparent; }
+
+    /* My Board 카드 */
+    .proj-card-link{ display:inline-block; text-decoration:none; color:inherit; }
+    #myBoardProjectMount{ margin-top:12px; }
+    .board-card .proj-card{
+      width:320px; background:#fff; border:1px solid rgba(0,0,0,0.07); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.06);
+      padding:16px; color:#000; display:flex; flex-direction:column; gap:14px;
+    }
+    .proj-toprow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .proj-title{ font-weight:700; font-size:13px; color:#000; letter-spacing:-0.02em; word-break:break-word; }
+    .proj-duedate{ margin-top:6px; font-size:13px; color:rgba(0,0,0,0.6); }
+    .proj-iconwrap{ width:40px; height:40px; border-radius:9999px; background:#2E2F9F; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; line-height:1; flex-shrink:0; }
+    .proj-status-row{ display:flex; align-items:center; gap:8px; font-size:13px; justify-content:flex-end; }
+    .proj-status-dot{ width:8px; height:8px; border-radius:9999px; background:#8A8CD9; }
+    .proj-status-text{ color:#8A8CD9; font-weight:500; }
+    .proj-progressbar{ width:100%; height:4px; border-radius:2px; background:#efefef; }
+    .proj-progress-inner{ height:100%; border-radius:2px; background:#8A8CD9; width:0%; }
+    .proj-footer-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; font-size:13px; color:#000; }
+    .proj-percent{ font-weight:500; color:#000; white-space:nowrap; }
+    .proj-hint{ font-size:11px; color:rgba(0,0,0,0.45); }
+    .proj-empty-cta{ display:inline-block; padding:10px 12px; border-radius:8px; background:#fff; border:1px dashed #cfcfcf; color:#111; font-weight:600; }
+  </style>
+</head>
+
+<body class="font-sans text-white bg-[var(--sb-main-top)] min-h-screen flex flex-col md:flex-row">
+
+  <!-- ========== LEFT SIDEBAR ========== -->
+  <aside id="sidebar" class="sidebar hidden md:flex flex-col shrink-0 select-none" data-collapsed="false">
+    <div class="brand-area border-b border-white/10 px-[16px] py-[20px]">
+      <div class="brand-wrapper">
+        <div id="brandToggleArea" class="brand-left">
+          <div class="logo-wrapper"><img src="home_assets/logo.png" alt="FOR:WORD"/></div>
+          <div class="expand-icon-wrapper">
+            <svg class="w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 6 6 6-6 6"/>
+            </svg>
+          </div>
+          <div class="flex flex-col"><div class="brand-text">FOR:WORD</div></div>
+        </div>
+
+        <div class="brand-right">
+          <div id="collapseToggle" class="collapse-btn tap-highlight-clear" aria-label="Collapse sidebar">
+            <svg class="collapse-icon w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- nav -->
+    <nav class="sidebar-nav-container text-sm">
+      <a href="home.html" class="sidebar-nav-btn sidebar-nav-btn-active tap-highlight-clear mb-[4px] bg-white/10 hover:bg-white/15">
+        <img src="home_assets/Main_icon.svg" alt="Main" class="w-[20px] h-[20px] object-contain"/>
+        <span class="nav-label nav-label-active">Main</span>
+      </a>
+      <a href="editor.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Editor_icon.svg" alt="Editor View" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Editor View</span>
+      </a>
+      <a href="projects.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Projects</span>
+      </a>
+      <a href="graph.html" class="sidebar-nav-btn tap-highlight-clear mb-[16px] hover:bg-white/10">
+        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Knowledge Graph</span>
+      </a>
+      <div class="sidebar-divider"></div>
+      <a href="social.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
+        <img src="home_assets/Social_icon.svg" alt="Social" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Social</span>
+      </a>
+    </nav>
+
+    <div class="profile-border text-xs text-white/60">
+      <div class="profile-wrap">
+        <div class="profile-row">
+          <div class="profile-icon"><img src="home_assets/Profile_icon.svg" alt="Profile"/></div>
+          <div class="profile-meta">
+            <span class="text-white/90 text-[13px] font-medium">hs r</span>
+            <span class="text-white/50 text-[11px]">Workspace</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== MOBILE BOTTOM NAV ========== -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg" style="height:var(--mobile-nav-h);">
+    <a href="home.html" class="mobile-nav-btn mobile-nav-btn-active">
+      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain"/><span>Main</span>
+    </a>
+    <a href="editor.html" class="mobile-nav-btn">
+      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain opacity-70"/><span>Editor</span>
+    </a>
+    <a href="projects.html" class="mobile-nav-btn">
+      <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[24px] h-[24px] object-contain opacity-70"/><span>Projects</span>
+    </a>
+    <a href="graph.html" class="mobile-nav-btn">
+      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w-[24px] h-[24px] object-contain opacity-70"/><span>Graph</span>
+    </a>
+    <a href="social.html" class="mobile-nav-btn">
+      <img src="home_assets/Social_icon.svg" alt="Social" class="w-[24px] h-[24px] object-contain opacity-70"/><span>Social</span>
+    </a>
+  </nav>
+
+  <!-- ========== MAIN CONTENT ========== -->
+  <main class="flex-1 flex flex-col relative w-full min-h-screen md:min-h-0 md:h-screen overflow-hidden text-white main-bg">
+    <!-- 임시 아이콘 -->
+    <img id="tempIconImg" src="home_assets/temporary_icon.svg" alt="temp icon" style="position:absolute; top:50px; left:0px; width:400px; height:auto; max-width:40vw; min-width:200px; pointer-events:none; user-select:none; z-index:9999;"/>
+
+    <!-- 디지털 시계 -->
+    <div id="sbClockContainer" style="position:absolute; top:70px; left:0px; height:56px; display:flex; align-items:flex-start; z-index:9999; pointer-events:none; user-select:none;">
+      <div class="digit" data-slot="h1"><span class="seg a"></span><span class="seg b"></span><span class="seg c"></span><span class="seg d"></span><span class="seg e"></span><span class="seg f"></span><span class="seg g"></span></div>
+      <div class="digit" data-slot="h2"><span class="seg a"></span><span class="seg b"></span><span class="seg c"></span><span class="seg d"></span><span class="seg e"></span><span class="seg f"></span><span class="seg g"></span></div>
+      <div id="sbClockColon"><div class="colon-dot"></div><div class="colon-dot"></div></div>
+      <div class="digit" data-slot="m1"><span class="seg a"></span><span class="seg b"></span><span class="seg c"></span><span class="seg d"></span><span class="seg e"></span><span class="seg f"></span><span class="seg g"></span></div>
+      <div class="digit" data-slot="m2"><span class="seg a"></span><span class="seg b"></span><span class="seg c"></span><span class="seg d"></span><span class="seg e"></span><span class="seg f"></span><span class="seg g"></span></div>
+    </div>
+
+    <section class="flex-1 overscroll-contain pb-[calc(var(--mobile-nav-h)+16px)] md:pb-[32px]" style="overflow-y:hidden; padding-top:15px; padding-left:40px; padding-right:32px;">
+      <div class="page-inner">
+
+        <!-- HERO -->
+        <header class="mt-[40px] mb-[24px] md:mb-[32px]">
+          <div class="hero-title">Welcome Back!
+Let's connect everything.</div>
+        </header>
+
+        <!-- 메인 행 -->
+        <section class="flex flex-col md:flex-row md:items-start gap-[16px] md:gap-[24px] relative">
+
+          <!-- My Board -->
+          <div class="board-shell mt-[30px]">
+            <div class="board-card" id="boardCard">
+              <div class="board-head">
+                <div class="board-title">My Board</div>
+                <button class="board-more">more</button>
+              </div>
+
+              <!-- Projects 1번 박스 mount -->
+              <div id="myBoardProjectMount"></div>
+
+              <!-- (보드 내부 내용 자리) -->
+            </div>
+          </div>
+
+          <!-- 오른쪽 사이드 -->
+          <div class="side-col">
+            <!-- Search -->
+            <div class="side-box side-box-search">
+              <div class="search-shell">
+                <div class="search-left">
+                  <img src="home_assets/Search_icon.svg" alt="search" class="w-[16px] h-[16px] object-contain"/>
+                  <span class="search-placeholder-text">Search Everything</span>
+                </div>
+                <button class="search-clear-btn" aria-label="Clear search">
+                  <img src="home_assets/x_icon.svg" alt="clear"/>
+                </button>
+              </div>
+            </div>
+
+            <!-- 캘린더 + Tasks -->
+            <div class="side-box side-box-large">
+              <!-- 캘린더 헤더 -->
+              <div class="cal-header-row">
+                <button class="cal-nav-btn" id="calPrevBtn" aria-label="Previous period">&lt;</button>
+                <div class="cal-current-month" id="calMonthLabel">Feb</div>
+                <button class="cal-nav-btn" id="calNextBtn" aria-label="Next period">&gt;</button>
+              </div>
+
+              <!-- ✅ 하나의 그리드가 주→월로 확장되는 캘린더 -->
+              <div class="cal-week" id="calWeek" data-mode="week">
+                <div class="cal-weekdays">
+                  <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                </div>
+
+                <!-- 높이를 애니메이션할 래퍼 -->
+                <div class="cal-grid-wrap" id="calGridWrap" style="height:36px;">
+                  <div id="calGrid"></div>
+                </div>
+
+                <!-- 단순 v 아이콘 -->
+                <button id="calModeToggle" class="cal-mode-toggle" aria-expanded="false" aria-controls="calGridWrap" title="주/월 전환">
+                  <svg class="cal-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- 구분선 -->
+              <div class="cal-divider"></div>
+
+              <!-- What's up Today -->
+              <div class="panel-section-header">
+                <div class="panel-section-title">What’s up Today</div>
+                <button class="task-add-btn" data-target="todayList" aria-label="add task">＋</button>
+              </div>
+              <div class="task-list" id="todayList"></div>
+
+              <div class="panel-divider"></div>
+
+              <!-- To-do -->
+              <div class="panel-section-header small">
+                <div class="panel-section-title small">To-do</div>
+                <button class="task-add-btn small" data-target="todoList" aria-label="add task">＋</button>
+              </div>
+              <div class="task-list" id="todoList"></div>
+            </div> <!-- /side-box-large -->
+          </div> <!-- /side-col -->
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* 사이드바 토글 */
+    const sidebar = document.getElementById('sidebar');
+    const collapseToggle = document.getElementById('collapseToggle');
+    const brandToggleArea = document.getElementById('brandToggleArea');
+    collapseToggle.addEventListener('click', () => sidebar.setAttribute('data-collapsed','true'));
+    brandToggleArea.addEventListener('click', () => { if(sidebar.getAttribute('data-collapsed')==='true') sidebar.setAttribute('data-collapsed','false'); });
+
+    /* ===== 캘린더 상태 ===== */
+    const calWeekEl     = document.getElementById('calWeek');
+    const calGridWrap   = document.getElementById('calGridWrap');
+    const calGrid       = document.getElementById('calGrid');
+    const calMonthLabel = document.getElementById('calMonthLabel');
+    const calPrevBtn    = document.getElementById('calPrevBtn');
+    const calNextBtn    = document.getElementById('calNextBtn');
+    const calModeToggle = document.getElementById('calModeToggle');
+
+    const GRID_GAP_PX = 4;              // CSS gap과 동일
+    const ROW_HEIGHT  = 36;             // grid-auto-rows와 동일
+    const ROWS_WEEK   = 1;
+    const ROWS_MONTH  = 6;
+
+    /* 날짜/선택일 */
+    const today = new Date();
+    let selectedDate = new Date(today);   // ✅ 기본 선택 = 오늘
+    let lastGridStart = null;             // ✅ 현재 렌더된 42칸의 시작(월요일) 보관
+
+    function sameYMD(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+    function getDateKey(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+    function getMonday(d){
+      const t = new Date(d);
+      const day = t.getDay(); // 0=Sun
+      const diff = (day + 6) % 7; // Monday base
+      t.setHours(0,0,0,0);
+      t.setDate(t.getDate() - diff);
+      return t;
+    }
+    function startOfMonth(d){ const t=new Date(d.getFullYear(), d.getMonth(), 1); t.setHours(0,0,0,0); return t; }
+
+    // 주간 기준(현재 선택일이 포함된 주의 월요일)
+    let currentWeekStart = getMonday(today);
+
+    // 렌더 모드: 'week' | 'month'
+    function getMode(){ return calWeekEl.getAttribute('data-mode') === 'month' ? 'month' : 'week'; }
+    function setMode(m){
+      calWeekEl.setAttribute('data-mode', m);
+      calModeToggle.setAttribute('aria-expanded', String(m==='month'));
+      adjustGridWrapHeight(); // 높이 애니메이션
+      renderCalendar();       // 라벨/그리드/오프셋 동기화
+    }
+
+    // ✅ 선택된 날짜의 "주"가 보이도록 그리드를 위/아래로 슬라이드
+    function updateGridOffset(){
+      if(!lastGridStart){ calGrid.style.transform = 'translateY(0)'; return; }
+      if(getMode()==='month'){ calGrid.style.transform = 'translateY(0)'; return; }
+
+      // 선택일이 42칸 그리드에서 몇 번째 "주"에 있는지 계산
+      const diffMs  = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) - lastGridStart;
+      const diffDay = Math.floor(diffMs / (24*60*60*1000));
+      let rowIndex  = Math.floor(diffDay / 7);
+      rowIndex = Math.max(0, Math.min(ROWS_MONTH-1, rowIndex)); // 0~5로 클램프
+
+      const perRow = ROW_HEIGHT + GRID_GAP_PX;
+      calGrid.style.transform = `translateY(${-rowIndex * perRow}px)`;
+    }
+
+    // v 토글 클릭: 주<->월
+    calModeToggle.addEventListener('click', ()=>{
+      const next = getMode()==='week' ? 'month' : 'week';
+      setMode(next);
+    });
+
+    // 높이 계산 (같은 그리드가 아래로 늘어나며 월간으로 보이게)
+    function adjustGridWrapHeight(){
+      const rows = (getMode()==='week') ? ROWS_WEEK : ROWS_MONTH;
+      const height = rows*ROW_HEIGHT + (rows-1)*GRID_GAP_PX;
+      calGridWrap.style.height = height + 'px';
+    }
+
+    // 주/월 이동 버튼
+    calPrevBtn.addEventListener('click', ()=>{
+      if(getMode()==='week'){
+        currentWeekStart.setDate(currentWeekStart.getDate()-7);
+        selectedDate.setDate(selectedDate.getDate()-7);
+      }else{
+        selectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth()-1, 1);
+        currentWeekStart = getMonday(selectedDate);
+      }
+      renderCalendar(); renderTaskLists();
+    });
+    calNextBtn.addEventListener('click', ()=>{
+      if(getMode()==='week'){
+        currentWeekStart.setDate(currentWeekStart.getDate()+7);
+        selectedDate.setDate(selectedDate.getDate()+7);
+      }else{
+        selectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth()+1, 1);
+        currentWeekStart = getMonday(selectedDate);
+      }
+      renderCalendar(); renderTaskLists();
+    });
+
+    // 캘린더 라벨
+    const monthNamesShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    // 주/월 공통 그리드 렌더 (항상 42칸(6주) 렌더, 래퍼 높이로 보이는 행 결정)
+    function renderCalendar(){
+      // 라벨: 선택일 기준
+      calMonthLabel.textContent = monthNamesShort[selectedDate.getMonth()];
+
+      // 월간 기준 그리드 시작일(해당 월의 1일이 포함된 주의 월요일)
+      const first = startOfMonth(selectedDate);
+      const gridStart = getMonday(first);
+      lastGridStart = gridStart; // ✅ 오프셋 계산용으로 저장
+
+      const cells = [];
+      for(let i=0;i<42;i++){
+        const d = new Date(gridStart);
+        d.setDate(gridStart.getDate()+i);
+        cells.push(d);
+      }
+
+      calGrid.innerHTML = cells.map(d=>{
+        const isOther = d.getMonth()!==selectedDate.getMonth();
+        const isSel   = sameYMD(d, selectedDate);
+        const isTod   = sameYMD(d, today);
+        return `<button class="grid-date-btn ${isOther?'is-other':''} ${isSel?'is-selected':''} ${isTod?'is-today':''}" 
+                  data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}">${d.getDate()}</button>`;
+      }).join('');
+
+      // 날짜 클릭 → 선택 갱신 후 재렌더 (주간일 때 해당 주를 보이게)
+      calGrid.querySelectorAll('.grid-date-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const y=+btn.getAttribute('data-y'), m=+btn.getAttribute('data-m'), d=+btn.getAttribute('data-d');
+          selectedDate = new Date(y,m,d);
+          if(getMode()==='week'){ currentWeekStart = getMonday(selectedDate); }
+          renderCalendar(); renderTaskLists();
+        });
+      });
+
+      // 높이/오프셋 동기화
+      adjustGridWrapHeight();
+      updateGridOffset();
+    }
+
+    /* ===== Tasks & Projects (기존 유지) ===== */
+    const STORAGE_KEYS = {
+      HOME_TASKS:'fw_home_tasks_v1',
+      PROJECTS:'fw_projects',
+      DUE_STATE:'fw_home_due_state_v1',
+      DUE_HIDE:'fw_home_due_dismissed_v1'
+    };
+    const loadJSON = (k, defVal) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):defVal; }catch(e){ return defVal; } };
+    const saveJSON = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+
+    let tasksByDay = loadJSON(STORAGE_KEYS.HOME_TASKS, {});
+    function ensureDayBucket(dateKey){ if(!tasksByDay[dateKey]) tasksByDay[dateKey] = { today:[], todo:[] }; return tasksByDay[dateKey]; }
+    function saveHomeTasks(){ saveJSON(STORAGE_KEYS.HOME_TASKS, tasksByDay); }
+
+    let dueStateByDay = loadJSON(STORAGE_KEYS.DUE_STATE, {});
+    let dueHideByDay  = loadJSON(STORAGE_KEYS.DUE_HIDE,  {});
+    const setDueDone   = (dateKey, projectId, done) => { if(!dueStateByDay[dateKey]) dueStateByDay[dateKey]={}; if(!dueStateByDay[dateKey][projectId]) dueStateByDay[dateKey][projectId]={}; dueStateByDay[dateKey][projectId].done=!!done; saveJSON(STORAGE_KEYS.DUE_STATE, dueStateByDay); };
+    const isDueDone    = (dateKey, projectId) => !!(dueStateByDay[dateKey]?.[projectId]?.done);
+    const isDueHidden  = (dateKey, projectId) => !!(dueHideByDay[dateKey]?.includes(projectId));
+    const hideDue      = (dateKey, projectId) => { if(!dueHideByDay[dateKey]) dueHideByDay[dateKey]=[]; if(!dueHideByDay[dateKey].includes(projectId)) dueHideByDay[dateKey].push(projectId); saveJSON(STORAGE_KEYS.DUE_HIDE, dueHideByDay); };
+
+    const esc = (s) => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+    function getDueProjectTasksForDate(dateKey){
+      const projects = loadJSON(STORAGE_KEYS.PROJECTS, []);
+      if(!Array.isArray(projects)) return [];
+      const due = projects.filter(p => p && p.dueDate===dateKey && p.title);
+      const visible = due.filter(p => !isDueHidden(dateKey, p.id));
+      return visible.map(p => ({ text:`[Due] ${p.title}`, done:isDueDone(dateKey,p.id), origin:'project', projectId:p.id }));
+    }
+
+    const todayListEl = document.getElementById('todayList');
+    const todoListEl  = document.getElementById('todoList');
+
+    function renderTaskLists(){
+      const key = getDateKey(selectedDate);
+      const bucket = ensureDayBucket(key);
+      const dueTasks = getDueProjectTasksForDate(key);
+      renderOne(todayListEl, [...dueTasks, ...bucket.today], 'today');
+      renderOne(todoListEl, bucket.todo, 'todo');
+    }
+
+    function renderOne(listEl, arr, listType){
+      listEl.innerHTML = arr.map((task, idx) => {
+        const isProject = task.origin === 'project';
+        return `
+          <div class="task-card" data-list="${listType}" data-index="${idx}" ${isProject ? `data-origin="project" data-project-id="${String(task.projectId)}"`:''}>
+            <button class="task-del-btn" aria-label="delete" data-action="delete" data-list="${listType}" data-index="${idx}" ${isProject ? `data-origin="project" data-project-id="${String(task.projectId)}"`:''}>×</button>
+            <div class="task-left">
+              <input type="checkbox" class="task-checkbox-input" data-action="toggle" data-list="${listType}" data-index="${idx}" ${isProject ? `data-origin="project" data-project-id="${String(task.projectId)}"`:''} ${task.done?"checked":""}/>
+              <div class="task-text" contenteditable="${!isProject}" data-action="edit" data-list="${listType}" data-index="${idx}" ${isProject ? `data-origin="project" data-project-id="${String(task.projectId)}"`:''}>${esc(task.text)}</div>
+            </div>
+            <div class="task-right"><div class="task-arrow"><img src="home_assets/Arrow_icon.svg" alt="go"/></div></div>
+          </div>`;
+      }).join('');
+    }
+
+    document.querySelectorAll('.task-add-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const listType = btn.getAttribute('data-target')==='todayList' ? 'today' : 'todo';
+        const key = getDateKey(selectedDate);
+        const bucket = ensureDayBucket(key);
+        bucket[listType].push({ text:"", done:false });
+        saveHomeTasks(); renderTaskLists();
+
+        const lastIdx = bucket[listType].length-1;
+        const lastTextEl = document.querySelector(`.task-text[data-list="${listType}"][data-index="${lastIdx}"]:not([data-origin="project"])`);
+        if(lastTextEl){
+          const range=document.createRange(), sel=window.getSelection();
+          range.selectNodeContents(lastTextEl); range.collapse(false); sel.removeAllRanges(); sel.addRange(range); lastTextEl.focus();
+        }
+      });
+    });
+
+    document.addEventListener('click', (e)=>{
+      const action = e.target.getAttribute && e.target.getAttribute('data-action');
+      if(action!=='delete') return;
+      const listType = e.target.getAttribute('data-list');
+      const idx = +e.target.getAttribute('data-index');
+      const key = getDateKey(selectedDate);
+      const bucket = ensureDayBucket(key);
+      const origin = e.target.getAttribute('data-origin');
+      if(origin==='project'){
+        const pid = e.target.getAttribute('data-project-id');
+        if(pid){ hideDue(key, pid); renderTaskLists(); }
+        return;
+      }
+      bucket[listType].splice(idx,1); saveHomeTasks(); renderTaskLists();
+    });
+
+    document.addEventListener('change', (e)=>{
+      const action = e.target.getAttribute && e.target.getAttribute('data-action');
+      if(action!=='toggle') return;
+      const listType = e.target.getAttribute('data-list');
+      const idx = +e.target.getAttribute('data-index');
+      const key = getDateKey(selectedDate);
+      const bucket = ensureDayBucket(key);
+      const origin = e.target.getAttribute('data-origin');
+      if(origin==='project'){
+        const pid = e.target.getAttribute('data-project-id');
+        if(pid){ setDueDone(key, pid, e.target.checked); }
+        return;
+      }
+      if(bucket[listType]?.[idx]){ bucket[listType][idx].done = e.target.checked; saveHomeTasks(); }
+    });
+
+    document.addEventListener('input', (e)=>{
+      const action = e.target.getAttribute && e.target.getAttribute('data-action');
+      if(action!=='edit') return;
+      const listType = e.target.getAttribute('data-list');
+      const idx = +e.target.getAttribute('data-index');
+      const origin = e.target.getAttribute('data-origin');
+      if(origin==='project') return;
+      const key = getDateKey(selectedDate);
+      const bucket = ensureDayBucket(key);
+      if(bucket[listType]?.[idx]){ bucket[listType][idx].text = e.target.innerText; saveHomeTasks(); }
+    });
+
+    /* ===== 디지털 시계 (기존 유지) ===== */
+    const SEG_MAP = { "0":["a","b","c","d","e","f"], "1":["b","c"], "2":["a","b","d","e","g"], "3":["a","b","c","d","g"], "4":["b","c","f","g"], "5":["a","c","d","f","g"], "6":["a","c","d","e","f","g"], "7":["a","b","c"], "8":["a","b","c","d","e","f","g"], "9":["a","b","c","d","f","g"] };
+    const clockContainer = document.getElementById('sbClockContainer');
+    const colonEl = document.getElementById('sbClockColon');
+    const digitEls = {
+      h1: clockContainer.querySelector('.digit[data-slot="h1"]'),
+      h2: clockContainer.querySelector('.digit[data-slot="h2"]'),
+      m1: clockContainer.querySelector('.digit[data-slot="m1"]'),
+      m2: clockContainer.querySelector('.digit[data-slot="m2"]'),
+    };
+    function setDigit(digitEl, numChar){
+      const onList = SEG_MAP[numChar] || [];
+      digitEl.querySelectorAll('.seg').forEach(seg=>{
+        const name = [...seg.classList].find(c => ["a","b","c","d","e","f","g"].includes(c));
+        if(onList.includes(name)) seg.classList.add('on'); else seg.classList.remove('on');
+      });
+    }
+    let colonBlink=false;
+    function updateClock(){
+      const now=new Date(); const h=String(now.getHours()).padStart(2,"0"); const m=String(now.getMinutes()).padStart(2,"0");
+      setDigit(digitEls.h1,h[0]); setDigit(digitEls.h2,h[1]); setDigit(digitEls.m1,m[0]); setDigit(digitEls.m2,m[1]);
+      colonBlink=!colonBlink; if(colonBlink) colonEl.classList.remove('off'); else colonEl.classList.add('off');
+    }
+    setInterval(updateClock, 500); updateClock();
+
+    /* ===== 부가 정렬 (기존 유지) ===== */
+    const boardCardEl = document.getElementById('boardCard');
+    const mainEl = document.querySelector('main');
+    const tempIconEl = document.getElementById('tempIconImg');
+
+    function alignTempIcon(){
+      if(!boardCardEl || !tempIconEl || !mainEl) return;
+      const boardRect = boardCardEl.getBoundingClientRect();
+      const mainRect = mainEl.getBoundingClientRect();
+      const iconRect = tempIconEl.getBoundingClientRect();
+      const boardCenterX = boardRect.left + (boardRect.width/2);
+      const newLeft = (boardCenterX - (iconRect.width/2)) - mainRect.left;
+      tempIconEl.style.left = newLeft + "px";
+    }
+    function alignClockRightEdge(){
+      if(!boardCardEl || !clockContainer || !mainEl) return;
+      const boardRect = boardCardEl.getBoundingClientRect();
+      const mainRect = mainEl.getBoundingClientRect();
+      const clockRect = clockContainer.getBoundingClientRect();
+      const CLOCK_GAP = -20;
+      const newLeft = (boardRect.right + CLOCK_GAP - clockRect.width) - mainRect.left;
+      clockContainer.style.left = newLeft + "px";
+    }
+    function alignFloatingElements(){ alignTempIcon(); alignClockRightEdge(); }
+    alignFloatingElements(); window.addEventListener('resize', alignFloatingElements); window.addEventListener('load', alignFloatingElements); requestAnimationFrame(alignFloatingElements);
+
+    /* ===== My Board 첫 프로젝트 카드 (기존 유지) ===== */
+    function renderMyBoardProject(){
+      const mount = document.getElementById('myBoardProjectMount'); if(!mount) return; mount.innerHTML='';
+      const projects = loadJSON(STORAGE_KEYS.PROJECTS, []);
+      if(!Array.isArray(projects) || projects.length===0){ mount.innerHTML = `<a class="proj-empty-cta" href="projects.html">프로젝트 만들기 →</a>`; return; }
+      const p = projects[0]; const title = esc(p.title||'Untitled Project'); const due = p.dueDate ? `Due Date: ${esc(p.dueDate)}` : 'Due Date: —';
+      mount.innerHTML = `
+        <a class="proj-card-link" href="projects.html" aria-label="Open Projects">
+          <div class="proj-card">
+            <div class="proj-toprow">
+              <div class="proj-texts">
+                <div class="proj-title">${title}</div>
+                <div class="proj-duedate">${due}</div>
+              </div>
+              <div class="proj-iconwrap" aria-hidden="true">LOGO</div>
+            </div>
+            <div class="proj-status-row"><span class="proj-status-dot"></span><span class="proj-status-text">In Progress</span></div>
+            <div class="proj-progressbar"><div class="proj-progress-inner" style="width:0%;"></div></div>
+            <div class="proj-footer-row">
+              <div class="proj-tasks-text"><span class="done-count">0</span>/<span class="total-count">0</span> Total Tasks</div>
+              <div class="proj-percent"><span class="percent-val">0%</span></div>
+            </div>
+          </div>
+        </a>`;
+    }
+
+    /* ===== 초기 렌더 ===== */
+    renderCalendar();      // ✅ 오늘 날짜가 선택되어 렌더
+    renderTaskLists();
+    renderMyBoardProject();
+
+    // 창 리사이즈 시 높이/오프셋 재계산(반응형 대비)
+    window.addEventListener('resize', ()=>{
+      adjustGridWrapHeight();
+      updateGridOffset();
+    });
+  </script>
+
+</body>
+</html>

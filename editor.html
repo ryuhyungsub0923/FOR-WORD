@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FOR:WORD — Editor View</title>
+
+  <!-- Pretendard font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"/>
+
+  <!-- Tailwind (dev only) -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard','system-ui','sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+
+  <style>
+    :root{
+      --sb-nav-top: rgba(30,31,31,0.9);
+      --sb-nav-bottom: #848C95;
+
+      --sb-main-top: #2C2C2C;
+      --sb-main-bottom: #929292;
+
+      --sidebar-w: 212px;
+      --sidebar-w-collapsed: 68px;
+      --mobile-nav-h: 64px;
+
+      --editor-min-h: 520px;
+      --refpanel-w: 360px;
+    }
+
+    body{
+      overflow:hidden;
+    }
+
+    .tap-highlight-clear{
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+
+    /* nav label text */
+    .nav-label{
+      font-family: Pretendard, system-ui, sans-serif;
+      font-size:14px;
+      font-weight:400;
+      line-height:1.3;
+      letter-spacing:-0.02em;
+      color:rgba(255,255,255,0.7);
+    }
+    .nav-label-active{
+      color:#fff;
+      font-weight:500;
+    }
+
+    /* sidebar / gradient bg */
+    .sidebar{
+      width:var(--sidebar-w);
+      background: linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%);
+      transition: width 0.18s ease;
+    }
+    .sidebar[data-collapsed="true"]{
+      width:var(--sidebar-w-collapsed);
+    }
+
+    .brand-text{
+      font-family: Pretendard, system-ui, sans-serif;
+      font-size:18px;
+      font-weight:600;
+      line-height:1.2;
+      letter-spacing:-0.02em;
+      color:#fff;
+      white-space:nowrap;
+    }
+    .sidebar[data-collapsed="true"] .brand-text{
+      display:none;
+    }
+
+    .brand-wrapper{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      width:100%;
+      position:relative;
+    }
+
+    .brand-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      cursor:pointer;
+      width:auto;
+    }
+    .sidebar[data-collapsed="true"] .brand-left{
+      justify-content:center;
+      width:100%;
+      gap:0 !important;
+    }
+
+    .logo-wrapper{
+      flex-shrink:0;
+      width:32px;
+      height:32px;
+      border-radius:6px;
+      background-color:rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .logo-wrapper img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+    .sidebar[data-collapsed="true"] .logo-wrapper{
+      display:none;
+    }
+
+    .expand-icon-wrapper{
+      flex-shrink:0;
+      width:32px;
+      height:32px;
+      border-radius:6px;
+      background-color:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.15);
+      display:none;
+      align-items:center;
+      justify-content:center;
+    }
+    .sidebar[data-collapsed="true"] .expand-icon-wrapper{
+      display:flex;
+    }
+
+    .brand-right{
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .sidebar[data-collapsed="true"] .brand-right{
+      display:none;
+    }
+
+    .collapse-btn{
+      width:28px;
+      height:28px;
+      border-radius:6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background-color:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.15);
+      transition:background-color .12s ease;
+      cursor:pointer;
+    }
+    .collapse-btn:hover{
+      background-color:rgba(255,255,255,0.15);
+    }
+
+    .collapse-icon{
+      transition:transform .18s ease;
+    }
+    .sidebar[data-collapsed="true"] .collapse-icon{
+      transform:rotate(180deg);
+    }
+
+    .sidebar-nav-container{
+      display:flex;
+      flex-direction:column;
+      flex-grow:1;
+      padding-top:24px;
+      padding-bottom:24px;
+      padding-left:16px;
+      padding-right:16px;
+    }
+    .sidebar[data-collapsed="true"] .sidebar-nav-container{
+      padding-left:10px;
+      padding-right:10px;
+    }
+
+    /* nav buttons are <a> links */
+    .sidebar-nav-btn{
+      width:180px;
+      height:48px;
+      display:flex;
+      align-items:center;
+      border-radius:0.5rem;
+      padding-left:12px;
+      padding-right:12px;
+      gap:10px;
+      text-align:left;
+      transition:background-color .12s ease,color .12s ease;
+      text-decoration:none;
+      color:inherit;
+    }
+    .sidebar-nav-btn-active{
+      background-color:rgba(255,255,255,0.1);
+    }
+    .sidebar-nav-btn:hover{
+      background-color:rgba(255,255,255,0.1);
+    }
+
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn{
+      width:48px;
+      padding-left:0;
+      padding-right:0;
+      justify-content:center;
+      gap:0;
+    }
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn span.nav-label{
+      display:none;
+    }
+
+    .sidebar-divider{
+      width:100%;
+      border-top:1px solid rgba(255,255,255,0.15);
+      margin-top:16px;
+      margin-bottom:16px;
+    }
+    .sidebar[data-collapsed="true"] .sidebar-divider{
+      margin-top:12px;
+      margin-bottom:12px;
+    }
+
+    .profile-wrap{
+      padding-left:16px;
+      padding-right:16px;
+      padding-top:16px;
+      padding-bottom:16px;
+    }
+    .sidebar[data-collapsed="true"] .profile-wrap{
+      padding-left:10px;
+      padding-right:10px;
+    }
+
+    .profile-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .profile-icon{
+      width:32px;
+      height:32px;
+      border-radius:6px;
+      background-color:rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .profile-icon img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+
+    .profile-meta{
+      display:flex;
+      flex-direction:column;
+      line-height:1.2;
+    }
+    .sidebar[data-collapsed="true"] .profile-meta{
+      display:none;
+    }
+
+    .profile-border{
+      border-top:1px solid rgba(255,255,255,0.1);
+      color:rgba(255,255,255,0.6);
+      font-size:12px;
+    }
+
+    .main-bg{
+      background:linear-gradient(
+        to bottom,
+        var(--sb-main-top) 0%,
+        var(--sb-main-bottom) 100%
+      );
+    }
+
+    .mobile-nav-bg{
+      background: linear-gradient(
+        to bottom,
+        var(--sb-nav-top) 0%,
+        var(--sb-nav-bottom) 100%
+      );
+    }
+
+    .mobile-nav-btn{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      font-size:11px;
+      line-height:1;
+      color:rgba(255,255,255,0.7);
+      text-decoration:none;
+    }
+    .mobile-nav-btn-active{
+      color:#fff;
+    }
+
+    /* page wrapper */
+    .page-inner{
+      max-width:1100px;
+      width:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .hero-title{
+      color:#fff;
+      font-size:24px;
+      font-weight:500;
+      line-height:1.5;
+      letter-spacing:-0.02em;
+      white-space:pre-line;
+    }
+
+    /* ===== EDITOR LAYOUT ===== */
+    .editor-layout{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    @media(min-width:768px){
+      .editor-layout{
+        flex-direction:row;
+        align-items:flex-start;
+        gap:24px;
+      }
+    }
+
+    .editor-main{
+      flex:1 1 auto;
+      min-width:0;
+    }
+
+    .editor-card{
+      background:#FFFFFF;
+      border-radius:8px;
+      border:1px solid rgba(0,0,0,0.08);
+      box-shadow:0 24px 60px rgba(0,0,0,0.4);
+      color:#000;
+
+      display:flex;
+      flex-direction:column;
+
+      padding:16px;
+      min-height:var(--editor-min-h);
+    }
+
+    .editor-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .editor-title{
+      font-size:16px;
+      font-weight:600;
+      line-height:1.4;
+      color:#000;
+      letter-spacing:-0.02em;
+    }
+    .editor-meta{
+      font-size:12px;
+      line-height:1.2;
+      color:#666;
+    }
+
+    .editor-body{
+      flex:1;
+      min-height:320px;
+      border:1px solid #DADADA;
+      border-radius:6px;
+      background:#FAFAFA;
+      padding:12px;
+      font-size:14px;
+      line-height:1.5;
+      color:#2B2B2B;
+      letter-spacing:-0.02em;
+      outline:none;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    /* Reference Panel */
+    .ref-col{
+      flex-shrink:0;
+      width:100%;
+      max-width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    @media(min-width:768px){
+      .ref-col{
+        width:var(--refpanel-w);
+      }
+    }
+
+    .ref-card{
+      width:100%;
+      background:#fff;
+      border-radius:8px;
+      border:1px solid rgba(0,0,0,0.08);
+      box-shadow:0 16px 40px rgba(0,0,0,0.4);
+
+      color:#000;
+      font-size:14px;
+      line-height:1.4;
+      letter-spacing:-0.02em;
+
+      display:flex;
+      flex-direction:column;
+      padding:16px;
+      min-height:120px;
+    }
+
+    .ref-head-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .ref-head-left{
+      font-size:14px;
+      font-weight:600;
+      color:#000;
+      line-height:1.4;
+      letter-spacing:-0.02em;
+    }
+    .ref-head-right{
+      font-size:11px;
+      font-weight:400;
+      color:#666;
+      line-height:1.2;
+      letter-spacing:-0.02em;
+    }
+
+    .ref-body{
+      font-size:13px;
+      line-height:1.5;
+      font-weight:400;
+      color:#444;
+      word-break:break-word;
+    }
+    .ref-quote{
+      background:#F5F5F5;
+      border-radius:4px;
+      border:1px solid #E0E0E0;
+      padding:8px;
+      font-size:12px;
+      line-height:1.4;
+      color:#222;
+      margin-top:8px;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+  </style>
+</head>
+
+<body class="font-sans text-white bg-[var(--sb-main-top)] min-h-screen flex flex-col md:flex-row">
+
+  <!-- LEFT SIDEBAR -->
+  <aside
+    id="sidebar"
+    class="sidebar hidden md:flex flex-col shrink-0 select-none"
+    data-collapsed="false"
+  >
+    <div class="brand-area border-b border-white/10 px-[16px] py-[20px]">
+      <div class="brand-wrapper">
+        <div id="brandToggleArea" class="brand-left">
+          <div class="logo-wrapper">
+            <img src="home_assets/logo.png" alt="FOR:WORD"/>
+          </div>
+
+          <div class="expand-icon-wrapper">
+            <svg class="w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5"
+              viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 6 6 6-6 6"/>
+            </svg>
+          </div>
+
+          <div class="flex flex-col">
+            <div class="brand-text">FOR:WORD</div>
+          </div>
+        </div>
+
+        <div class="brand-right">
+          <div
+            id="collapseToggle"
+            class="collapse-btn tap-highlight-clear"
+            aria-label="Collapse sidebar"
+          >
+            <svg class="collapse-icon w-[16px] h-[16px] text-white/80"
+              fill="none" stroke="currentColor" stroke-width="1.5"
+              viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-container text-sm">
+      <a
+        href="home.html"
+        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
+      >
+        <img src="home_assets/Main_icon.svg" alt="Main"
+          class="w-[20px] h-[20px] object-contain"/>
+        <span class="nav-label">Main</span>
+      </a>
+
+      <a
+        href="editor.html"
+        class="sidebar-nav-btn sidebar-nav-btn-active tap-highlight-clear mb-[4px] bg-white/10 hover:bg-white/15"
+      >
+        <img src="home_assets/Editor_icon.svg" alt="Editor View"
+          class="w-[20px] h-[20px] object-contain"/>
+        <span class="nav-label nav-label-active">Editor View</span>
+      </a>
+
+      <a
+        href="projects.html"
+        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
+      >
+        <img src="home_assets/Project_icon.svg" alt="Projects"
+          class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Projects</span>
+      </a>
+
+      <a
+        href="graph.html"
+        class="sidebar-nav-btn tap-highlight-clear mb-[16px] hover:bg-white/10"
+      >
+        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph"
+          class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Knowledge Graph</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <a
+        href="social.html"
+        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
+      >
+        <img src="home_assets/Social_icon.svg" alt="Social"
+          class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <span class="nav-label">Social</span>
+      </a>
+    </nav>
+
+    <div class="profile-border text-xs text-white/60">
+      <div class="profile-wrap">
+        <div class="profile-row">
+          <div class="profile-icon">
+            <img src="home_assets/Profile_icon.svg" alt="Profile"/>
+          </div>
+          <div class="profile-meta">
+            <span class="text-white/90 text-[13px] font-medium">hs r</span>
+            <span class="text-white/50 text-[11px]">Workspace</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE NAV -->
+  <nav
+    class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg"
+    style="height:var(--mobile-nav-h);"
+  >
+    <a href="home.html" class="mobile-nav-btn">
+      <img src="home_assets/Main_icon.svg" alt="Main"
+        class="w-[24px] h-[24px] object-contain"/>
+      <span>Main</span>
+    </a>
+
+    <a href="editor.html" class="mobile-nav-btn mobile-nav-btn-active">
+      <img src="home_assets/Editor_icon.svg" alt="Editor"
+        class="w-[24px] h-[24px] object-contain"/>
+      <span>Editor</span>
+    </a>
+
+    <a href="projects.html" class="mobile-nav-btn">
+      <img src="home_assets/Project_icon.svg" alt="Projects"
+        class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Projects</span>
+    </a>
+
+    <a href="graph.html" class="mobile-nav-btn">
+      <img src="home_assets/Graph_icon.svg" alt="Graph"
+        class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Graph</span>
+    </a>
+
+    <a href="social.html" class="mobile-nav-btn">
+      <img src="home_assets/Social_icon.svg" alt="Social"
+        class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <span>Social</span>
+    </a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main
+    class="flex-1 flex flex-col relative w-full min-h-screen md:min-h-0 md:h-screen overflow-hidden text-white main-bg"
+  >
+    <section
+      class="flex-1 overscroll-contain pb-[calc(var(--mobile-nav-h)+16px)] md:pb-[32px]"
+      style="
+        overflow-y:hidden;
+        padding-top:15px;
+        padding-left:40px;
+        padding-right:32px;
+      "
+    >
+      <div class="page-inner">
+        <!-- HERO -->
+        <header class="mb-[24px] md:mb-[32px]">
+          <div class="hero-title">
+Editor View
+Work with focus & context.
+          </div>
+        </header>
+
+        <!-- EDITOR / REF SPLIT -->
+        <section class="editor-layout">
+
+          <!-- LEFT: Editor panel -->
+          <div class="editor-main">
+            <div class="editor-card">
+              <div class="editor-head">
+                <div>
+                  <div class="editor-title">Untitled Draft</div>
+                  <div class="editor-meta">Updated just now</div>
+                </div>
+                <button
+                  class="text-[12px] leading-[1.2] text-[#666] border border-[#999] rounded-[4px] px-[8px] py-[4px] bg-white/10 hover:bg-white/20"
+                  style="color:#fff;border-color:rgba(255,255,255,0.4);background-color:rgba(255,255,255,0.07);"
+                >
+                  Export
+                </button>
+              </div>
+
+              <div
+                class="editor-body"
+                contenteditable="true"
+              >여기에 글을 작성하세요. 인용한 문장, 아이디어, 회의 기록을 정리하고 실제 원고처럼 다듬을 수 있습니다.</div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Reference / Quotes -->
+          <aside class="ref-col">
+            <div class="ref-card">
+              <div class="ref-head-row">
+                <div class="ref-head-left">Reference Snippet</div>
+                <div class="ref-head-right">12 min ago</div>
+              </div>
+              <div class="ref-body">
+                “사랑은 감정이 아니라 감당이다.”  
+                이 문장을 오늘 글의 메인 훅으로 쓸지 고민.
+              </div>
+              <div class="ref-quote">
+                관계의 지속은 결국 서로가 서로에게 남아주려는 의지다. 달콤함보다 체력이 중요하다.
+              </div>
+            </div>
+
+            <div class="ref-card">
+              <div class="ref-head-row">
+                <div class="ref-head-left">User Interview — 세컨드 브레인</div>
+                <div class="ref-head-right">yesterday</div>
+              </div>
+              <div class="ref-body">
+                “메모는 쌓이는데 합쳐지질 않는다.  
+                이걸 자동으로 묶어주고 다음 문장을 제안해주면 돈 낼 의향 있음.”
+              </div>
+              <div class="ref-quote">
+                → 인용 삽입 후보: “글은 쓰여진 게 아니라 조립된다.”
+              </div>
+            </div>
+          </aside>
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // sidebar collapse/expand
+    const sidebar = document.getElementById('sidebar');
+    const collapseToggle = document.getElementById('collapseToggle');
+    const brandToggleArea = document.getElementById('brandToggleArea');
+
+    collapseToggle.addEventListener('click', () => {
+      sidebar.setAttribute('data-collapsed', 'true');
+    });
+
+    brandToggleArea.addEventListener('click', () => {
+      if (sidebar.getAttribute('data-collapsed') === 'true') {
+        sidebar.setAttribute('data-collapsed', 'false');
+      }
+    });
+  </script>
+
+</body>
+</html>
