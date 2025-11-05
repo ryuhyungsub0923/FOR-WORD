@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>FOR:WORD — Editor View</title>
 
-  <!-- Pretendard font -->
+  <!-- Pretendard -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"/>
 
   <!-- Tailwind (dev only) -->
@@ -15,9 +15,7 @@
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Pretendard','system-ui','sans-serif']
-          }
+          fontFamily: { sans: ['Pretendard','system-ui','sans-serif'] }
         }
       }
     };
@@ -26,696 +24,489 @@
 
   <style>
     :root{
+      /* ===== 브랜드 네비(유지) ===== */
       --sb-nav-top: rgba(30,31,31,0.9);
       --sb-nav-bottom: #848C95;
 
-      --sb-main-top: #2C2C2C;
-      --sb-main-bottom: #929292;
+      /* ===== 작업영역 토큰 ===== */
+      --canvas-bg: #FFFFFF;
+      --work-bg: #F7F7F8;
+      --ink-1: #111827;
+      --ink-2: #6B7280;
+      --divider: #E5E7EB;
 
       --sidebar-w: 212px;
       --sidebar-w-collapsed: 68px;
-      --mobile-nav-h: 64px;
+
+      /* 좌측 INDEX, 우측 패널 폭 */
+      --index-w: 280px;
+      --right-w: 360px;
 
       --editor-min-h: 520px;
-      --refpanel-w: 360px;
     }
 
-    body{
-      overflow:hidden;
-    }
+    body{ overflow:hidden; color:var(--ink-1); }
 
-    .tap-highlight-clear{
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
-    }
-
-    /* nav label text */
-    .nav-label{
-      font-family: Pretendard, system-ui, sans-serif;
-      font-size:14px;
-      font-weight:400;
-      line-height:1.3;
-      letter-spacing:-0.02em;
-      color:rgba(255,255,255,0.7);
-    }
-    .nav-label-active{
-      color:#fff;
-      font-weight:500;
-    }
-
-    /* sidebar / gradient bg */
+    /* ---------------- 네비게이션(그대로) ---------------- */
     .sidebar{
       width:var(--sidebar-w);
       background: linear-gradient(to bottom, var(--sb-nav-top) 0%, var(--sb-nav-bottom) 100%);
-      transition: width 0.18s ease;
+      transition: width .18s ease;
     }
-    .sidebar[data-collapsed="true"]{
-      width:var(--sidebar-w-collapsed);
-    }
+    .sidebar[data-collapsed="true"]{ width:var(--sidebar-w-collapsed); }
+    .sidebar-nav-btn{ width:180px; height:48px; display:flex; align-items:center; gap:10px; border-radius:8px; padding:0 12px; text-decoration:none; color:inherit; }
+    .sidebar[data-collapsed="true"] .sidebar-nav-btn{ width:48px; padding:0; justify-content:center; gap:0; }
+    .nav-label{ font-size:14px; color:rgba(255,255,255,.75); }
+    .nav-label-active{ color:#fff; font-weight:600; }
+    .sidebar-divider{ width:100%; border-top:1px solid rgba(255,255,255,.15); margin:16px 0; }
 
-    .brand-text{
-      font-family: Pretendard, system-ui, sans-serif;
-      font-size:18px;
-      font-weight:600;
-      line-height:1.2;
-      letter-spacing:-0.02em;
-      color:#fff;
-      white-space:nowrap;
+    /* ---------------- 좌측 INDEX(고정 유지) ---------------- */
+    #outlineCol{
+      width:var(--index-w);
+      background:#101214;
+      color:#F3F4F6;
+      display:flex; flex-direction:column;
+      border-right:1px solid rgba(255,255,255,.08);
     }
-    .sidebar[data-collapsed="true"] .brand-text{
-      display:none;
-    }
+    .index-head{ height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .index-title{ font-size:14px; font-weight:700; letter-spacing:-0.01em; }
+    .index-back{ width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); cursor:pointer; }
+    .index-scroll{ flex:1; overflow:auto; padding:8px 8px 12px 8px; }
+    .tree{ font-size:13px; line-height:1.5; }
+    .tree ul{ margin:6px 0; padding-left:12px; border-left:1px dashed rgba(255,255,255,.12); }
+    .tree-li{ margin:4px 0; color:#E5E7EB; }
+    .tree-li .label{ display:inline-flex; align-items:center; gap:6px; }
+    .tree-li .bullet{ width:6px; height:6px; border-radius:999px; background:#9CA3AF; opacity:.8; }
+    .tree-li.active{ background:#181B1F; border:1px solid rgba(255,255,255,.08); border-left:3px solid #7DD3FC; border-radius:6px; padding:4px 6px; color:#fff; }
 
-    .brand-wrapper{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      width:100%;
-      position:relative;
+    /* ---------------- 중앙 패널(이미지 스타일) ---------------- */
+    .center-wrap{ flex:1 1 auto; min-width:0; background:var(--canvas-bg); display:flex; flex-direction:column; }
+    /* 상단 타이틀 바 */
+    .doc-topbar{
+      height:44px; display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid var(--divider); padding:0 14px;
+      background:var(--canvas-bg);
+      position:sticky; top:0; z-index:5;
     }
+    .doc-title{
+      font-size:14px; color:#9CA3AF; outline:none; border:none; background:transparent; width:40%;
+    }
+    .doc-actions{ display:flex; align-items:center; gap:14px; font-size:12px; color:#374151; }
+    .chip{ font-size:12px; padding:4px 8px; border-radius:999px; background:#111827; color:#fff; }
+    .link-like{ cursor:pointer; }
+    /* 태그 + 툴바 바 */
+    .toolbar-wrap{ border-bottom:1px solid var(--divider); background:#F9FAFB; }
+    .tag-row{ height:40px; display:flex; align-items:center; gap:8px; padding:0 12px; }
+    .tag-add{ font-size:12px; border:1px solid #E5E7EB; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; color:#374151; }
+    .toolbar-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; }
+    .tbtn{
+      height:28px; min-width:28px; padding:0 8px; border-radius:6px; border:1px solid #D1D5DB; background:#fff;
+      display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; cursor:pointer; color:#111827;
+    }
+    .tsep{ height:28px; width:1px; background:#E5E7EB; margin:0 2px; }
 
-    .brand-left{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      cursor:pointer;
-      width:auto;
+    /* 에디터 본문 */
+    .editor-area{
+      flex:1 1 auto; min-height:var(--editor-min-h);
+      padding:16px; outline:none; font-size:14px; line-height:1.8; color:#111827;
+      white-space:pre-wrap; word-break:break-word;
     }
-    .sidebar[data-collapsed="true"] .brand-left{
-      justify-content:center;
-      width:100%;
-      gap:0 !important;
+    .editor-area:empty:before{
+      content:'클릭하여 노트를 시작해보세요! 오른쪽 메모 탭에서 메모를 드래그해서 여기에 넣을 수 있습니다.';
+      color:#9CA3AF;
     }
+    /* 하단 바 */
+    .editor-footer{
+      border-top:1px solid var(--divider); height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#fff;
+      position:sticky; bottom:0; z-index:2;
+    }
+    .icon-btn{ width:28px; height:28px; border-radius:6px; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center; background:#fff; }
 
-    .logo-wrapper{
-      flex-shrink:0;
-      width:32px;
-      height:32px;
-      border-radius:6px;
-      background-color:rgba(255,255,255,0.1);
-      border:1px solid rgba(255,255,255,0.2);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
+    /* ---------------- 우측 패널(이미지 스타일) ---------------- */
+    .right-col{
+      width:var(--right-w); background:#FAFAFB; display:flex; flex-direction:column; height:100vh;
+      border-left:2px dotted #60A5FA;          /* 이미지의 점선 구분 느낌 */
     }
-    .logo-wrapper img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
+    .tabs{
+      height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid var(--divider); background:#FFFFFF;
     }
-    .sidebar[data-collapsed="true"] .logo-wrapper{
-      display:none;
+    .tab{
+      display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; font-weight:600; font-size:13px; color:#374151; cursor:pointer;
     }
+    .tab[aria-selected="true"]{ background:#F3F4F6; }
+    .panel{ display:none; height:calc(100vh - 44px); }
+    .panel[data-active="true"]{ display:flex; flex-direction:column; }
 
-    .expand-icon-wrapper{
-      flex-shrink:0;
-      width:32px;
-      height:32px;
-      border-radius:6px;
-      background-color:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.15);
-      display:none;
-      align-items:center;
-      justify-content:center;
-    }
-    .sidebar[data-collapsed="true"] .expand-icon-wrapper{
-      display:flex;
-    }
+    /* 챗봇 */
+    .chat-log{ flex:1 1 auto; overflow:auto; padding:12px; }
+    .bubble{ max-width:85%; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.55; }
+    .bot{ background:#FFFFFF; border:1px solid #E5E7EB; color:#111827; margin-right:auto; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .me{ background:#111827; color:#fff; margin-left:auto; }
+    .chat-bar{ border-top:1px solid var(--divider); background:#fff; padding:10px; display:flex; gap:8px; }
+    .chat-input{ flex:1; border:1px solid #D1D5DB; border-radius:12px; padding:10px 12px; font-size:13px; }
+    .send-btn{ width:36px; height:36px; border-radius:10px; background:#111827; color:#fff; display:flex; align-items:center; justify-content:center; }
 
-    .brand-right{
-      flex-shrink:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .sidebar[data-collapsed="true"] .brand-right{
-      display:none;
-    }
+    /* 메모 */
+    .memo-wrap{ flex:1; display:flex; flex-direction:column; }
+    .memo-list{ flex:1; overflow:auto; padding:12px; }
+    .memo-card{ background:#fff; border:1px solid #E5E7EB; border-radius:8px; padding:10px 12px; font-size:13px; color:#374151; margin-bottom:8px; }
+    .memo-bar{ border-top:1px solid var(--divider); padding:10px; background:#fff; display:flex; gap:8px; }
+    .memo-input{ flex:1; border:1px solid #D1D5DB; border-radius:10px; padding:10px 12px; font-size:13px; }
 
-    .collapse-btn{
-      width:28px;
-      height:28px;
-      border-radius:6px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background-color:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.15);
-      transition:background-color .12s ease;
-      cursor:pointer;
-    }
-    .collapse-btn:hover{
-      background-color:rgba(255,255,255,0.15);
-    }
-
-    .collapse-icon{
-      transition:transform .18s ease;
-    }
-    .sidebar[data-collapsed="true"] .collapse-icon{
-      transform:rotate(180deg);
-    }
-
-    .sidebar-nav-container{
-      display:flex;
-      flex-direction:column;
-      flex-grow:1;
-      padding-top:24px;
-      padding-bottom:24px;
-      padding-left:16px;
-      padding-right:16px;
-    }
-    .sidebar[data-collapsed="true"] .sidebar-nav-container{
-      padding-left:10px;
-      padding-right:10px;
-    }
-
-    /* nav buttons are <a> links */
-    .sidebar-nav-btn{
-      width:180px;
-      height:48px;
-      display:flex;
-      align-items:center;
-      border-radius:0.5rem;
-      padding-left:12px;
-      padding-right:12px;
-      gap:10px;
-      text-align:left;
-      transition:background-color .12s ease,color .12s ease;
-      text-decoration:none;
-      color:inherit;
-    }
-    .sidebar-nav-btn-active{
-      background-color:rgba(255,255,255,0.1);
-    }
-    .sidebar-nav-btn:hover{
-      background-color:rgba(255,255,255,0.1);
-    }
-
-    .sidebar[data-collapsed="true"] .sidebar-nav-btn{
-      width:48px;
-      padding-left:0;
-      padding-right:0;
-      justify-content:center;
-      gap:0;
-    }
-    .sidebar[data-collapsed="true"] .sidebar-nav-btn span.nav-label{
-      display:none;
-    }
-
-    .sidebar-divider{
-      width:100%;
-      border-top:1px solid rgba(255,255,255,0.15);
-      margin-top:16px;
-      margin-bottom:16px;
-    }
-    .sidebar[data-collapsed="true"] .sidebar-divider{
-      margin-top:12px;
-      margin-bottom:12px;
-    }
-
-    .profile-wrap{
-      padding-left:16px;
-      padding-right:16px;
-      padding-top:16px;
-      padding-bottom:16px;
-    }
-    .sidebar[data-collapsed="true"] .profile-wrap{
-      padding-left:10px;
-      padding-right:10px;
-    }
-
-    .profile-row{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-
-    .profile-icon{
-      width:32px;
-      height:32px;
-      border-radius:6px;
-      background-color:rgba(255,255,255,0.1);
-      border:1px solid rgba(255,255,255,0.2);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-    .profile-icon img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-    }
-
-    .profile-meta{
-      display:flex;
-      flex-direction:column;
-      line-height:1.2;
-    }
-    .sidebar[data-collapsed="true"] .profile-meta{
-      display:none;
-    }
-
-    .profile-border{
-      border-top:1px solid rgba(255,255,255,0.1);
-      color:rgba(255,255,255,0.6);
-      font-size:12px;
-    }
-
-    .main-bg{
-      background:linear-gradient(
-        to bottom,
-        var(--sb-main-top) 0%,
-        var(--sb-main-bottom) 100%
-      );
-    }
-
-    .mobile-nav-bg{
-      background: linear-gradient(
-        to bottom,
-        var(--sb-nav-top) 0%,
-        var(--sb-nav-bottom) 100%
-      );
-    }
-
-    .mobile-nav-btn{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:4px;
-      font-size:11px;
-      line-height:1;
-      color:rgba(255,255,255,0.7);
-      text-decoration:none;
-    }
-    .mobile-nav-btn-active{
-      color:#fff;
-    }
-
-    /* page wrapper */
-    .page-inner{
-      max-width:1100px;
-      width:100%;
-      display:flex;
-      flex-direction:column;
-    }
-
-    .hero-title{
-      color:#fff;
-      font-size:24px;
-      font-weight:500;
-      line-height:1.5;
-      letter-spacing:-0.02em;
-      white-space:pre-line;
-    }
-
-    /* ===== EDITOR LAYOUT ===== */
-    .editor-layout{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-    }
-    @media(min-width:768px){
-      .editor-layout{
-        flex-direction:row;
-        align-items:flex-start;
-        gap:24px;
-      }
-    }
-
-    .editor-main{
-      flex:1 1 auto;
-      min-width:0;
-    }
-
-    .editor-card{
-      background:#FFFFFF;
-      border-radius:8px;
-      border:1px solid rgba(0,0,0,0.08);
-      box-shadow:0 24px 60px rgba(0,0,0,0.4);
-      color:#000;
-
-      display:flex;
-      flex-direction:column;
-
-      padding:16px;
-      min-height:var(--editor-min-h);
-    }
-
-    .editor-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      margin-bottom:12px;
-    }
-    .editor-title{
-      font-size:16px;
-      font-weight:600;
-      line-height:1.4;
-      color:#000;
-      letter-spacing:-0.02em;
-    }
-    .editor-meta{
-      font-size:12px;
-      line-height:1.2;
-      color:#666;
-    }
-
-    .editor-body{
-      flex:1;
-      min-height:320px;
-      border:1px solid #DADADA;
-      border-radius:6px;
-      background:#FAFAFA;
-      padding:12px;
-      font-size:14px;
-      line-height:1.5;
-      color:#2B2B2B;
-      letter-spacing:-0.02em;
-      outline:none;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    /* Reference Panel */
-    .ref-col{
-      flex-shrink:0;
-      width:100%;
-      max-width:100%;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    @media(min-width:768px){
-      .ref-col{
-        width:var(--refpanel-w);
-      }
-    }
-
-    .ref-card{
-      width:100%;
-      background:#fff;
-      border-radius:8px;
-      border:1px solid rgba(0,0,0,0.08);
-      box-shadow:0 16px 40px rgba(0,0,0,0.4);
-
-      color:#000;
-      font-size:14px;
-      line-height:1.4;
-      letter-spacing:-0.02em;
-
-      display:flex;
-      flex-direction:column;
-      padding:16px;
-      min-height:120px;
-    }
-
-    .ref-head-row{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      margin-bottom:8px;
-    }
-    .ref-head-left{
-      font-size:14px;
-      font-weight:600;
-      color:#000;
-      line-height:1.4;
-      letter-spacing:-0.02em;
-    }
-    .ref-head-right{
-      font-size:11px;
-      font-weight:400;
-      color:#666;
-      line-height:1.2;
-      letter-spacing:-0.02em;
-    }
-
-    .ref-body{
-      font-size:13px;
-      line-height:1.5;
-      font-weight:400;
-      color:#444;
-      word-break:break-word;
-    }
-    .ref-quote{
-      background:#F5F5F5;
-      border-radius:4px;
-      border:1px solid #E0E0E0;
-      padding:8px;
-      font-size:12px;
-      line-height:1.4;
-      color:#222;
-      margin-top:8px;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
+    /* 추천 */
+    .reco-wrap{ flex:1; overflow:auto; padding:12px; }
+    .reco-card{ background:#fff; border:1px solid #E5E7EB; border-radius:8px; padding:12px; margin-bottom:8px; }
+    .reco-title{ font-weight:700; font-size:13px; margin-bottom:4px; }
+    .reco-sub{ font-size:12px; color:#4B5563; }
   </style>
 </head>
 
-<body class="font-sans text-white bg-[var(--sb-main-top)] min-h-screen flex flex-col md:flex-row">
+<body class="font-sans min-h-screen flex flex-row">
 
-  <!-- LEFT SIDEBAR -->
-  <aside
-    id="sidebar"
-    class="sidebar hidden md:flex flex-col shrink-0 select-none"
-    data-collapsed="false"
-  >
+  <!-- ================== LEFT NAV (유지) ================== -->
+  <aside id="sidebar" class="sidebar hidden md:flex flex-col shrink-0 select-none" data-collapsed="false">
     <div class="brand-area border-b border-white/10 px-[16px] py-[20px]">
-      <div class="brand-wrapper">
-        <div id="brandToggleArea" class="brand-left">
-          <div class="logo-wrapper">
-            <img src="home_assets/logo.png" alt="FOR:WORD"/>
+      <div class="flex items-center justify-between">
+        <div id="brandToggleArea" class="flex items-center gap-3 cursor-pointer">
+          <div class="w-8 h-8 rounded-md bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+            <img src="home_assets/logo.png" alt="FOR:WORD" class="w-full h-full object-contain"/>
           </div>
-
-          <div class="expand-icon-wrapper">
-            <svg class="w-[16px] h-[16px] text-white/80" fill="none" stroke="currentColor" stroke-width="1.5"
-              viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 6 6 6-6 6"/>
-            </svg>
+          <div class="hidden items-center justify-center w-8 h-8 rounded-md bg-white/10 border border-white/15 expand-icon-wrapper">
+            <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
           </div>
-
-          <div class="flex flex-col">
-            <div class="brand-text">FOR:WORD</div>
-          </div>
+          <div class="brand-text text-white font-semibold">FOR:WORD</div>
         </div>
-
-        <div class="brand-right">
-          <div
-            id="collapseToggle"
-            class="collapse-btn tap-highlight-clear"
-            aria-label="Collapse sidebar"
-          >
-            <svg class="collapse-icon w-[16px] h-[16px] text-white/80"
-              fill="none" stroke="currentColor" stroke-width="1.5"
-              viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-          </div>
-        </div>
+        <button id="collapseToggle" class="w-7 h-7 rounded-md bg-white/10 border border-white/15 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
       </div>
     </div>
 
-    <nav class="sidebar-nav-container text-sm">
-      <a
-        href="home.html"
-        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
-      >
-        <img src="home_assets/Main_icon.svg" alt="Main"
-          class="w-[20px] h-[20px] object-contain"/>
-        <span class="nav-label">Main</span>
+    <nav class="sidebar-nav-container flex-1 text-sm px-4">
+      <a href="home.html" class="sidebar-nav-btn hover:bg-white/10 mb-1">
+        <img src="home_assets/Main_icon.svg" class="w-5 h-5" alt="Main"/><span class="nav-label">Main</span>
       </a>
-
-      <a
-        href="editor.html"
-        class="sidebar-nav-btn sidebar-nav-btn-active tap-highlight-clear mb-[4px] bg-white/10 hover:bg-white/15"
-      >
-        <img src="home_assets/Editor_icon.svg" alt="Editor View"
-          class="w-[20px] h-[20px] object-contain"/>
-        <span class="nav-label nav-label-active">Editor View</span>
+      <a href="editor.html" class="sidebar-nav-btn bg-white/10 hover:bg-white/15 mb-1">
+        <img src="home_assets/Editor_icon.svg" class="w-5 h-5" alt="Editor"/><span class="nav-label nav-label-active">Editor View</span>
       </a>
-
-      <a
-        href="projects.html"
-        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
-      >
-        <img src="home_assets/Project_icon.svg" alt="Projects"
-          class="w-[20px] h-[20px] object-contain opacity-70"/>
-        <span class="nav-label">Projects</span>
+      <a href="projects.html" class="sidebar-nav-btn hover:bg-white/10 mb-1">
+        <img src="home_assets/Project_icon.svg" class="w-5 h-5 opacity-70" alt="Projects"/><span class="nav-label">Projects</span>
       </a>
-
-      <a
-        href="graph.html"
-        class="sidebar-nav-btn tap-highlight-clear mb-[16px] hover:bg-white/10"
-      >
-        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph"
-          class="w-[20px] h-[20px] object-contain opacity-70"/>
-        <span class="nav-label">Knowledge Graph</span>
+      <a href="graph.html" class="sidebar-nav-btn hover:bg-white/10 mb-4">
+        <img src="home_assets/Graph_icon.svg" class="w-5 h-5 opacity-70" alt="Graph"/><span class="nav-label">Knowledge Graph</span>
       </a>
-
       <div class="sidebar-divider"></div>
-
-      <a
-        href="social.html"
-        class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10"
-      >
-        <img src="home_assets/Social_icon.svg" alt="Social"
-          class="w-[20px] h-[20px] object-contain opacity-70"/>
-        <span class="nav-label">Social</span>
+      <a href="social.html" class="sidebar-nav-btn hover:bg-white/10 mb-1">
+        <img src="home_assets/Social_icon.svg" class="w-5 h-5 opacity-70" alt="Social"/><span class="nav-label">Social</span>
       </a>
     </nav>
 
-    <div class="profile-border text-xs text-white/60">
-      <div class="profile-wrap">
-        <div class="profile-row">
-          <div class="profile-icon">
-            <img src="home_assets/Profile_icon.svg" alt="Profile"/>
-          </div>
-          <div class="profile-meta">
-            <span class="text-white/90 text-[13px] font-medium">hs r</span>
-            <span class="text-white/50 text-[11px]">Workspace</span>
-          </div>
+    <div class="border-t border-white/10 px-4 py-4 text-white/70 text-xs">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-md bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+          <img src="home_assets/Profile_icon.svg" alt="Profile" class="w-full h-full object-contain"/>
+        </div>
+        <div class="leading-tight">
+          <div class="text-white text-[13px] font-medium">hs r</div>
+          <div class="text-white/60 text-[11px]">Workspace</div>
         </div>
       </div>
     </div>
   </aside>
 
-  <!-- MOBILE NAV -->
-  <nav
-    class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg"
-    style="height:var(--mobile-nav-h);"
-  >
-    <a href="home.html" class="mobile-nav-btn">
-      <img src="home_assets/Main_icon.svg" alt="Main"
-        class="w-[24px] h-[24px] object-contain"/>
-      <span>Main</span>
-    </a>
-
-    <a href="editor.html" class="mobile-nav-btn mobile-nav-btn-active">
-      <img src="home_assets/Editor_icon.svg" alt="Editor"
-        class="w-[24px] h-[24px] object-contain"/>
-      <span>Editor</span>
-    </a>
-
-    <a href="projects.html" class="mobile-nav-btn">
-      <img src="home_assets/Project_icon.svg" alt="Projects"
-        class="w-[24px] h-[24px] object-contain opacity-70"/>
-      <span>Projects</span>
-    </a>
-
-    <a href="graph.html" class="mobile-nav-btn">
-      <img src="home_assets/Graph_icon.svg" alt="Graph"
-        class="w-[24px] h-[24px] object-contain opacity-70"/>
-      <span>Graph</span>
-    </a>
-
-    <a href="social.html" class="mobile-nav-btn">
-      <img src="home_assets/Social_icon.svg" alt="Social"
-        class="w-[24px] h-[24px] object-contain opacity-70"/>
-      <span>Social</span>
-    </a>
-  </nav>
-
-  <!-- MAIN CONTENT -->
-  <main
-    class="flex-1 flex flex-col relative w-full min-h-screen md:min-h-0 md:h-screen overflow-hidden text-white main-bg"
-  >
-    <section
-      class="flex-1 overscroll-contain pb-[calc(var(--mobile-nav-h)+16px)] md:pb-[32px]"
-      style="
-        overflow-y:hidden;
-        padding-top:15px;
-        padding-left:40px;
-        padding-right:32px;
-      "
-    >
-      <div class="page-inner">
-        <!-- HERO -->
-        <header class="mb-[24px] md:mb-[32px]">
-          <div class="hero-title">
-Editor View
-Work with focus & context.
-          </div>
-        </header>
-
-        <!-- EDITOR / REF SPLIT -->
-        <section class="editor-layout">
-
-          <!-- LEFT: Editor panel -->
-          <div class="editor-main">
-            <div class="editor-card">
-              <div class="editor-head">
-                <div>
-                  <div class="editor-title">Untitled Draft</div>
-                  <div class="editor-meta">Updated just now</div>
-                </div>
-                <button
-                  class="text-[12px] leading-[1.2] text-[#666] border border-[#999] rounded-[4px] px-[8px] py-[4px] bg-white/10 hover:bg-white/20"
-                  style="color:#fff;border-color:rgba(255,255,255,0.4);background-color:rgba(255,255,255,0.07);"
-                >
-                  Export
-                </button>
-              </div>
-
-              <div
-                class="editor-body"
-                contenteditable="true"
-              >여기에 글을 작성하세요. 인용한 문장, 아이디어, 회의 기록을 정리하고 실제 원고처럼 다듬을 수 있습니다.</div>
-            </div>
-          </div>
-
-          <!-- RIGHT: Reference / Quotes -->
-          <aside class="ref-col">
-            <div class="ref-card">
-              <div class="ref-head-row">
-                <div class="ref-head-left">Reference Snippet</div>
-                <div class="ref-head-right">12 min ago</div>
-              </div>
-              <div class="ref-body">
-                “사랑은 감정이 아니라 감당이다.”  
-                이 문장을 오늘 글의 메인 훅으로 쓸지 고민.
-              </div>
-              <div class="ref-quote">
-                관계의 지속은 결국 서로가 서로에게 남아주려는 의지다. 달콤함보다 체력이 중요하다.
-              </div>
-            </div>
-
-            <div class="ref-card">
-              <div class="ref-head-row">
-                <div class="ref-head-left">User Interview — 세컨드 브레인</div>
-                <div class="ref-head-right">yesterday</div>
-              </div>
-              <div class="ref-body">
-                “메모는 쌓이는데 합쳐지질 않는다.  
-                이걸 자동으로 묶어주고 다음 문장을 제안해주면 돈 낼 의향 있음.”
-              </div>
-              <div class="ref-quote">
-                → 인용 삽입 후보: “글은 쓰여진 게 아니라 조립된다.”
-              </div>
-            </div>
-          </aside>
-        </section>
-
+  <!-- ================== LEFT INDEX ================== -->
+  <aside id="outlineCol" class="hidden md:flex flex-col shrink-0">
+    <div class="index-head">
+      <div class="index-title">INDEX</div>
+      <div id="indexBack" class="index-back" title="뒤로">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
       </div>
-    </section>
+    </div>
+    <div class="index-scroll">
+      <div id="indexTree" class="tree"><!-- JS 렌더 --></div>
+    </div>
+  </aside>
+
+  <!-- ================== CENTER (이미지 스타일) ================== -->
+  <main class="center-wrap">
+    <!-- 상단 타이틀 바 -->
+    <div class="doc-topbar">
+      <input id="docTitle" class="doc-title" placeholder="write title" />
+      <div class="doc-actions">
+        <span class="link-like">스플릿 뷰 <span class="chip">ON</span></span>
+        <span class="link-like">저장</span>
+      </div>
+    </div>
+
+    <!-- 태그 + 툴바 -->
+    <div class="toolbar-wrap">
+      <div class="tag-row">
+        <button class="tag-add">+ 태그 추가</button>
+      </div>
+      <div class="toolbar-row">
+        <button class="tbtn" title="Bold">B</button>
+        <button class="tbtn" title="Italic">I</button>
+        <button class="tbtn" title="Underline">U</button>
+        <div class="tsep"></div>
+        <button class="tbtn" title="Left">⟸</button>
+        <button class="tbtn" title="Center">↔</button>
+        <button class="tbtn" title="Right">⟹</button>
+        <div class="tsep"></div>
+        <button class="tbtn" title="Bulleted">•</button>
+        <button class="tbtn" title="Numbered">1.</button>
+        <div class="tsep"></div>
+        <button class="tbtn" title="Code">&lt;&gt;</button>
+        <button class="tbtn" title="Link">🔗</button>
+        <button class="tbtn" title="Image">🖼️</button>
+        <button class="tbtn" title="캔버스">🧩 캔버스</button>
+      </div>
+    </div>
+
+    <!-- 에디터 -->
+    <div id="editorArea" class="editor-area" contenteditable="true"></div>
+
+    <!-- 하단 바 -->
+    <div class="editor-footer">
+      <div class="flex items-center gap-2">
+        <button class="icon-btn" title="즐겨찾기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </button>
+        <button class="icon-btn" title="첨부">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M21.44 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3 3 0 014.24 4.24l-9.2 9.19a1 1 0 01-1.41-1.41l8.49-8.49"/></svg>
+        </button>
+      </div>
+      <button class="icon-btn" title="보내기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
   </main>
 
+  <!-- ================== RIGHT (이미지 스타일) ================== -->
+  <aside class="right-col">
+    <div class="tabs">
+      <button id="tab-chat" class="tab" aria-selected="true" aria-controls="panel-chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M21 15a4 4 0 01-4 4H7l-4 4V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg>
+        <span>챗봇</span>
+      </button>
+      <button id="tab-memo" class="tab" aria-selected="false" aria-controls="panel-memo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M9 12h6M9 16h6M8 4h8a2 2 0 012 2v12l-4 4H8a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        <span>메모</span>
+      </button>
+      <button id="tab-reco" class="tab" aria-selected="false" aria-controls="panel-reco">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.5"><path d="M12 2l3 7 7 .5-5 5 1.5 7L12 18 5.5 21 7 14 2 9.5 9 9z"/></svg>
+        <span>추천</span>
+      </button>
+    </div>
+
+    <!-- 챗봇 -->
+    <section id="panel-chat" class="panel" data-active="true" role="tabpanel">
+      <div class="chat-log" id="chatLog">
+        <div class="bubble bot">안녕하세요! 노트 작성을 도와드리는 AI 어시스턴트입니다. 무엇을 도와드릴까요?</div>
+      </div>
+      <div class="chat-bar">
+        <input id="chatInput" class="chat-input" placeholder="메시지를 입력하세요..."/>
+        <button id="chatSend" class="send-btn" title="전송">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 메모 -->
+    <section id="panel-memo" class="panel" role="tabpanel">
+      <div class="memo-wrap">
+        <div id="memoList" class="memo-list"></div>
+        <div class="memo-bar">
+          <input id="memoInput" class="memo-input" placeholder="메모를 입력하고 Enter"/>
+          <button id="memoAdd" class="send-btn" title="추가">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 추천 -->
+    <section id="panel-reco" class="panel" role="tabpanel">
+      <div id="recoWrap" class="reco-wrap">
+        <div class="reco-card">
+          <div class="reco-title">도망에서의 낙원</div>
+          <div class="reco-sub">도망친 곳에 낙원은 없다지만 나는 도망쳤고, 그 곳은 예상치 못한 낙원이었다.</div>
+        </div>
+      </div>
+    </section>
+  </aside>
+
   <script>
-    // sidebar collapse/expand
+    /* ===== 네비 토글(유지) ===== */
     const sidebar = document.getElementById('sidebar');
-    const collapseToggle = document.getElementById('collapseToggle');
-    const brandToggleArea = document.getElementById('brandToggleArea');
+    document.getElementById('collapseToggle')?.addEventListener('click',()=> sidebar.setAttribute('data-collapsed','true'));
+    document.getElementById('brandToggleArea')?.addEventListener('click',()=>{ if (sidebar.getAttribute('data-collapsed')==='true') sidebar.setAttribute('data-collapsed','false'); });
 
-    collapseToggle.addEventListener('click', () => {
-      sidebar.setAttribute('data-collapsed', 'true');
-    });
+    /* ===== 프로젝트 데이터 로드 ===== */
+    (function(){
+      const LIST_KEY = 'fw_projects';
+      const DRAFT_KEY = 'fw_project_draft_v2';
 
-    brandToggleArea.addEventListener('click', () => {
-      if (sidebar.getAttribute('data-collapsed') === 'true') {
-        sidebar.setAttribute('data-collapsed', 'false');
+      const qs = new URLSearchParams(location.search);
+      const projectId = (qs.get('projectId') || '').trim();
+
+      function loadProject(){
+        const list = JSON.parse(localStorage.getItem(LIST_KEY) || '[]');
+        let p = null;
+        if (projectId){ p = list.find(x => x && x.id === projectId) || null; }
+        if (!p){
+          try{ const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && typeof d === 'object') p = d; }catch(e){}
+        }
+        return p;
       }
-    });
-  </script>
 
+      /* ----- 좌측 INDEX 렌더 ----- */
+      function textNode(s){ return document.createTextNode(String(s ?? '')); }
+      function el(tag, attrs={}, children=[]){
+        const n = document.createElement(tag);
+        for (const k in attrs){ if (k==='class') n.className = attrs[k]; else n.setAttribute(k, attrs[k]); }
+        (Array.isArray(children)?children:[children]).forEach(c=>{
+          if (c==null) return;
+          if (typeof c==='string' || typeof c==='number') n.appendChild(textNode(c)); else n.appendChild(c);
+        });
+        return n;
+      }
+      function renderIndexTree(p){
+        const root = document.getElementById('indexTree');
+        root.innerHTML = '';
+        if(!p){ root.appendChild(el('div',{class:'text-sm text-gray-400'},'프로젝트 데이터가 없습니다.')); return; }
+
+        const title = p.title || '프로젝트 정의서';
+        root.appendChild(el('div',{class:'tree-li active'}, el('span',{class:'label'}, [el('span',{class:'bullet'}),' ', title])));
+
+        const ulRoot = el('ul');
+
+        const li1 = el('li',{class:'tree-li'});
+        li1.appendChild(el('span',{class:'label'},[el('span',{class:'bullet'}),' 1. 개요']));
+        const ul1 = el('ul');
+        ul1.appendChild(el('li',{class:'tree-li'}, (p.background||'—')));
+        li1.appendChild(ul1);
+        ulRoot.appendChild(li1);
+
+        const epics = Array.isArray(p.epics)? p.epics : [];
+        epics.forEach((ep, ei)=>{
+          const liE = el('li',{class:'tree-li'});
+          liE.appendChild(el('span',{class:'label'},[el('span',{class:'bullet'}),` EPIC ${ei+1}: ${ep?.epic?.trim()||'—'}`]));
+          const ulE = el('ul');
+          ulE.appendChild(el('li',{class:'tree-li'}, `objective: ${ (ep?.object||'—') }`));
+
+          const krs = Array.isArray(ep?.krs)? ep.krs : [];
+          const tbk = Array.isArray(ep?.tasksByKr)? ep.tasksByKr : [];
+          krs.forEach((kr, ki)=>{
+            const liKr = el('li',{class:'tree-li'});
+            liKr.appendChild(el('span',{class:'label'},[el('span',{class:'bullet'}),` KR${ki+1}: ${kr||'—'}`]));
+            const ulKr = el('ul');
+            (Array.isArray(tbk[ki])? tbk[ki] : []).forEach((t,ti)=> ulKr.appendChild(el('li',{class:'tree-li'},`task${ti+1}: ${t}`)));
+            if (!Array.isArray(tbk[ki]) || !tbk[ki].length) ulKr.appendChild(el('li',{class:'tree-li text-gray-400'},'task: —'));
+            liKr.appendChild(ulKr);
+            ulE.appendChild(liKr);
+          });
+
+          liE.appendChild(ulE);
+          ulRoot.appendChild(liE);
+        });
+
+        root.appendChild(ulRoot);
+      }
+
+      /* ----- 우측 추천 카드 샘플 ----- */
+      function renderRecommendations(p){
+        const wrap = document.getElementById('recoWrap');
+        if(!p) return;
+        const items = [];
+        if (p.dueDate || p.totalTasks) items.push({t:'일정 개요', s:`Due: ${p.dueDate||'—'} · 총 Tasks: ${Number(p.totalTasks||0)}`});
+        const epics = Array.isArray(p.epics)? p.epics : [];
+        let gaps = [];
+        epics.forEach((ep, ei)=>{
+          const krs = Array.isArray(ep?.krs)? ep.krs: [];
+          const tbk = Array.isArray(ep?.tasksByKr)? ep.tasksByKr : [];
+          krs.forEach((kr, ki)=>{
+            const tasks = Array.isArray(tbk[ki])? tbk[ki] : [];
+            if (!tasks.length) gaps.push(`E${ei+1}-KR${ki+1}`);
+          });
+        });
+        if (gaps.length) items.push({t:'Task 채워야 할 KR', s:gaps.slice(0,6).join(' · ') + (gaps.length>6?` 외 ${gaps.length-6}`:'')});
+
+        items.forEach(it=>{
+          const card = document.createElement('div');
+          card.className='reco-card';
+          card.innerHTML = `<div class="reco-title">${it.t}</div><div class="reco-sub">${it.s}</div>`;
+          wrap.appendChild(card);
+        });
+      }
+
+      /* ----- 탭, 챗, 메모 ----- */
+      function tabsInit(){
+        const tabs = [
+          {btn: document.getElementById('tab-chat'), panel: document.getElementById('panel-chat')},
+          {btn: document.getElementById('tab-memo'), panel: document.getElementById('panel-memo')},
+          {btn: document.getElementById('tab-reco'), panel: document.getElementById('panel-reco')}
+        ];
+        function act(i){
+          tabs.forEach((t,idx)=>{
+            t.btn.setAttribute('aria-selected', idx===i ? 'true':'false');
+            t.panel.setAttribute('data-active', idx===i ? 'true':'false');
+          });
+        }
+        tabs.forEach((t,i)=> t.btn.onclick = ()=> act(i));
+        act(0);
+      }
+      function chatInit(){
+        const input = document.getElementById('chatInput');
+        const send = document.getElementById('chatSend');
+        const log  = document.getElementById('chatLog');
+        function push(role, text){
+          const b = document.createElement('div');
+          b.className = 'bubble ' + (role==='me'?'me':'bot');
+          b.textContent = text;
+          log.appendChild(b);
+          log.scrollTop = log.scrollHeight;
+        }
+        function sendNow(){
+          const v = input.value.trim(); if(!v) return;
+          push('me', v); input.value='';
+          setTimeout(()=> push('bot','메모해둘게요.'), 200);
+        }
+        send.onclick = sendNow;
+        input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); } });
+      }
+      function memoInit(){
+        const list = document.getElementById('memoList');
+        const input = document.getElementById('memoInput');
+        const add = document.getElementById('memoAdd');
+        const KEY = 'fw_editor_memo_list';
+        function render(){
+          list.innerHTML='';
+          const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+          arr.forEach(t=>{
+            const d = document.createElement('div');
+            d.className='memo-card'; d.textContent = t;
+            list.appendChild(d);
+          });
+        }
+        function addNow(){
+          const v = input.value.trim(); if(!v) return;
+          const arr = JSON.parse(localStorage.getItem(KEY) || '[]'); arr.push(v);
+          localStorage.setItem(KEY, JSON.stringify(arr)); input.value=''; render();
+        }
+        add.onclick = addNow;
+        input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addNow(); }});
+        render();
+      }
+
+      const project = loadProject();
+      renderIndexTree(project);
+      renderRecommendations(project);
+      tabsInit(); chatInit(); memoInit();
+    })();
+
+    document.getElementById('indexBack')?.addEventListener('click', ()=> alert('뒤로 동작을 연결하세요 (예: history.back())'));
+  </script>
 </body>
 </html>
