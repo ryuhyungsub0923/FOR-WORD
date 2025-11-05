@@ -471,7 +471,7 @@
       <span>Main</span>
     </a>
     <a href="editor.html" class="mobile-nav-btn">
-      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain"/>
       <span>Editor</span>
     </a>
     <a href="projects.html" class="mobile-nav-btn mobile-nav-btn-active">
@@ -535,7 +535,7 @@
                 </div><!-- /projects-row -->
               </div><!-- /projects-scroller -->
 
-              <!-- 두 번째 저장 버튼(아이콘, 저장 후 리스트로 이동) -->
+              <!-- 두 번째 저장 버튼(아이콘, 저장 후 Editor로 이동) -->
               <button id="saveBtn" class="save-btn" type="button" title="저장하고 프로젝트 목록으로 이동">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M4 3h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm11 2H5v6h10V5zm-2 8H7v6h6v-6z"/>
@@ -1265,7 +1265,8 @@
         updateTaskCounter();
 
         if (redirect){
-          location.href = 'projects.html'; // 기본(list)로 이동
+          // ★ 수정: 저장 후 Editor View로 이동 (projectId 쿼리로 전달)
+          location.href = 'editor.html?projectId=' + encodeURIComponent(project.id);
         }
       }catch(err){
         console.error(err);
