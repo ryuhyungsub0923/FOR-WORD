@@ -13,18 +13,14 @@
     window.tailwind = window.tailwind || {};
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Pretendard','system-ui','sans-serif'] }
-        }
-      }
+      theme: { extend: { fontFamily: { sans: ['Pretendard','system-ui','sans-serif'] } } }
     };
   </script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
 
   <style>
     :root{
-      /* ====== (네비게이션: Social 페이지와 동일) ====== */
+      /* ===== Nav 그라디언트 (Social과 동일) ===== */
       --sb-nav-top: rgba(30,31,31,0.9);
       --sb-nav-bottom: #848C95;
 
@@ -35,15 +31,15 @@
       --sidebar-w-collapsed: 68px;
       --mobile-nav-h: 64px;
 
-      /* ====== 편집 화면 토큰 ====== */
+      /* ===== Editor 토큰 ===== */
       --canvas-bg: #FFFFFF;
       --work-bg: #F7F7F8;
       --ink-1: #111827;
       --ink-2: #6B7280;
       --divider: #E5E7EB;
 
-      /* 좌측 노트 패널, 우측 추천/챗/메모 폭 */
-      --index-w: 260px;      /* ← 이미지 느낌의 슬림 폭 */
+      /* 좌/우 패널 폭 */
+      --index-w: 260px;
       --right-w: 360px;
 
       --editor-min-h: 520px;
@@ -51,7 +47,7 @@
 
     body{ overflow:hidden; color:var(--ink-1); }
 
-    /* ---------------- 네비게이션 (Social과 동일) ---------------- */
+    /* ---------- 네비게이션 (Social과 동일) ---------- */
     .nav-label{ font-size:14px; font-weight:400; line-height:1.3; letter-spacing:-0.02em; color:rgba(255,255,255,0.7); font-family:Pretendard, system-ui, sans-serif; }
     .nav-label-active{ color:#fff; font-weight:500; }
 
@@ -117,17 +113,17 @@
     .mobile-nav-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; line-height:1; text-decoration:none; color:rgba(255,255,255,0.7); }
     .mobile-nav-btn-active{ color:#fff; }
 
-    /* ---------------- 좌측 패널 (이미지 스타일) ---------------- */
+    /* ---------- 좌측 패널 ---------- */
     #noteCol{
       width:var(--index-w);
       background:#fff;
       color:#0F172A;
       display:flex; flex-direction:column;
-      border-right:1px solid #EDF0F3;
+      border-right:1px solid var(--divider); /* 통일 */
       height:100vh;
     }
     .note-head{
-      height:44px; display:flex; align-items:center; gap:6px; padding:0 10px; border-bottom:1px solid #EDF0F3;
+      height:44px; display:flex; align-items:center; gap:6px; padding:0 10px; border-bottom:1px solid var(--divider);
       font-size:12px; color:#6B7280;
     }
     .note-head .back{
@@ -158,13 +154,13 @@
     .chev{ width:16px; height:16px; color:#64748B; }
 
     .note-footer{
-      border-top:1px solid #EDF0F3; padding:10px; background:#fff;
+      border-top:1px solid var(--divider); padding:10px; background:#fff;
     }
     .link-btn{
       width:100%; height:38px; border-radius:10px; background:#0B0B0E; color:#fff; font-size:13px; display:flex; align-items:center; justify-content:center;
     }
 
-    /* ---------------- 중앙 패널 (이전 승인된 스타일 유지) ---------------- */
+    /* ---------- 중앙 패널 ---------- */
     .center-wrap{ flex:1 1 auto; min-width:0; background:var(--canvas-bg); display:flex; flex-direction:column; }
     .doc-topbar{
       height:44px; display:flex; align-items:center; justify-content:space-between;
@@ -178,6 +174,8 @@
 
     .toolbar-wrap{ border-bottom:1px solid var(--divider); background:#F9FAFB; }
     .tag-row{ height:40px; display:flex; align-items:center; gap:8px; padding:0 12px; }
+    .tag-pill{ font-size:12px; border:1px solid #E5E7EB; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; color:#374151; }
+    .tag-pill.active{ background:#111827; color:#fff; border-color:#111827; }
     .tag-add{ font-size:12px; border:1px solid #E5E7EB; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; color:#374151; }
     .toolbar-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; }
     .tbtn{ height:28px; min-width:28px; padding:0 8px; border-radius:6px; border:1px solid #D1D5DB; background:#fff; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; cursor:pointer; color:#111827; }
@@ -198,10 +196,10 @@
     }
     .icon-btn{ width:28px; height:28px; border-radius:6px; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center; background:#fff; }
 
-    /* ---------------- 우측 패널 (이미지 스타일) ---------------- */
+    /* ---------- 우측 패널 ---------- */
     .right-col{
       width:var(--right-w); background:#FAFAFB; display:flex; flex-direction:column; height:100vh;
-      border-left:2px dotted #60A5FA;
+      border-left:1px solid var(--divider); /* ★ 통일: 파란 점선 제거 */
     }
     .tabs{ height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid var(--divider); background:#FFFFFF; }
     .tab{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; font-weight:600; font-size:13px; color:#374151; cursor:pointer; }
@@ -219,7 +217,8 @@
 
     .memo-wrap{ flex:1; display:flex; flex-direction:column; }
     .memo-list{ flex:1; overflow:auto; padding:12px; }
-    .memo-card{ background:#fff; border:1px solid #E5E7EB; border-radius:8px; padding:10px 12px; font-size:13px; color:#374151; margin-bottom:8px; }
+    .memo-card{ background:#fff; border:1px solid #E5E7EB; border-radius:8px; padding:10px 12px; font-size:13px; color:#374151; margin-bottom:8px; cursor:grab; }
+    .memo-card:active{ cursor:grabbing; }
     .memo-bar{ border-top:1px solid var(--divider); padding:10px; background:#fff; display:flex; gap:8px; }
     .memo-input{ flex:1; border:1px solid #D1D5DB; border-radius:10px; padding:10px 12px; font-size:13px; }
 
@@ -232,7 +231,7 @@
 
 <body class="font-sans text-white bg-[var(--sb-main-top)] min-h-screen flex flex-col md:flex-row">
 
-  <!-- LEFT SIDEBAR (Social과 동일 구조, Editor 활성화) -->
+  <!-- LEFT SIDEBAR -->
   <aside id="sidebar" class="sidebar hidden md:flex flex-col shrink-0 select-none" data-collapsed="false">
     <div class="brand-area border-b border-white/10 px-[16px] py-[20px]">
       <div class="brand-wrapper">
@@ -293,7 +292,7 @@
     </div>
   </aside>
 
-  <!-- MOBILE NAV (Social과 동일) -->
+  <!-- MOBILE NAV -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg" style="height:var(--mobile-nav-h);">
     <a href="home.html" class="mobile-nav-btn">
       <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain"/>
@@ -326,7 +325,6 @@
       <span>현재 노트</span>
     </div>
     <div class="note-scroll">
-      <!-- 선택된 노트 -->
       <div class="sec-label">선택된 노트</div>
       <div class="card-selected">
         <div id="selTitle" class="sel-title">개요</div>
@@ -336,14 +334,12 @@
         </div>
       </div>
 
-      <!-- 상위 노트 -->
       <div class="sec-label" style="margin-top:14px;">상위 노트</div>
       <div class="card-row" id="parentRow">
         <div class="file-ico">📄</div>
         <div id="parentTitle" class="text-[13px]">프로젝트 정의서</div>
       </div>
 
-      <!-- 하위 노트 -->
       <div class="sec-label" style="margin-top:14px;">
         <span>하위 노트 <span id="childCount" class="text-gray-400">(0)</span></span>
         <button id="addChild" class="text-[12px] text-gray-700">+ 추가</button>
@@ -361,20 +357,30 @@
       <input id="docTitle" class="doc-title" placeholder="write title" />
       <div class="doc-actions">
         <span>스플릿 뷰 <span class="chip">ON</span></span>
-        <span>저장</span>
+        <button id="manualSave" class="underline">저장</button>
       </div>
     </div>
 
     <div class="toolbar-wrap">
-      <div class="tag-row"><button class="tag-add">+ 태그 추가</button></div>
+      <div class="tag-row" id="tagRow">
+        <button id="addTagBtn" class="tag-add">+ 태그 추가</button>
+      </div>
       <div class="toolbar-row">
-        <button class="tbtn">B</button><button class="tbtn">I</button><button class="tbtn">U</button>
+        <button class="tbtn" data-cmd="bold">B</button>
+        <button class="tbtn" data-cmd="italic"><i>I</i></button>
+        <button class="tbtn" data-cmd="underline"><u>U</u></button>
         <div class="tsep"></div>
-        <button class="tbtn">⟸</button><button class="tbtn">↔</button><button class="tbtn">⟹</button>
+        <button class="tbtn" data-cmd="justifyLeft">⟸</button>
+        <button class="tbtn" data-cmd="justifyCenter">↔</button>
+        <button class="tbtn" data-cmd="justifyRight">⟹</button>
         <div class="tsep"></div>
-        <button class="tbtn">•</button><button class="tbtn">1.</button>
+        <button class="tbtn" data-cmd="insertUnorderedList">•</button>
+        <button class="tbtn" data-cmd="insertOrderedList">1.</button>
         <div class="tsep"></div>
-        <button class="tbtn">&lt;&gt;</button><button class="tbtn">🔗</button><button class="tbtn">🖼️</button><button class="tbtn">🧩 캔버스</button>
+        <button class="tbtn" id="codeBtn">&lt;&gt;</button>
+        <button class="tbtn" id="linkBtnEditor">🔗</button>
+        <button class="tbtn" id="imgBtn">🖼️</button>
+        <button class="tbtn">🧩 캔버스</button>
       </div>
     </div>
 
@@ -414,9 +420,7 @@
 
     <!-- 챗봇 -->
     <section id="panel-chat" class="panel" data-active="true" role="tabpanel">
-      <div class="chat-log" id="chatLog">
-        <div class="bubble bot">안녕하세요! 노트 작성을 도와드리는 AI 어시스턴트입니다. 무엇을 도와드릴까요?</div>
-      </div>
+      <div class="chat-log" id="chatLog"></div>
       <div class="chat-bar">
         <input id="chatInput" class="chat-input" placeholder="메시지를 입력하세요..."/>
         <button id="chatSend" class="send-btn" title="전송">
@@ -450,24 +454,21 @@
   </aside>
 
   <script>
-    /* ===== Sidebar collapse/expand (공통) ===== */
+    /* ===== Sidebar collapse/expand ===== */
     const sidebar = document.getElementById('sidebar');
     const collapseToggle = document.getElementById('collapseToggle');
     const brandToggleArea = document.getElementById('brandToggleArea');
-    if(collapseToggle){
-      collapseToggle.addEventListener('click', () => sidebar.setAttribute('data-collapsed', 'true'));
-    }
+    if(collapseToggle){ collapseToggle.addEventListener('click', () => sidebar.setAttribute('data-collapsed', 'true')); }
     if(brandToggleArea){
       brandToggleArea.addEventListener('click', () => {
         if (sidebar.getAttribute('data-collapsed') === 'true') sidebar.setAttribute('data-collapsed', 'false');
       });
     }
 
-    /* ===== 프로젝트 로드 (좌측 패널 데이터 반영) ===== */
+    /* ===== 좌측 패널 데이터 렌더 ===== */
     (function(){
       const LIST_KEY = 'fw_projects';
       const DRAFT_KEY = 'fw_project_draft_v2';
-
       const qs = new URLSearchParams(location.search);
       const projectId = (qs.get('projectId') || '').trim();
 
@@ -481,7 +482,6 @@
         return p;
       }
 
-      /* ---------- 좌측 노트 패널 렌더 ---------- */
       function el(tag, attrs={}, children=[]){
         const n = document.createElement(tag);
         for (const k in attrs){ if (k==='class') n.className = attrs[k]; else n.setAttribute(k, attrs[k]); }
@@ -503,100 +503,237 @@
         selTitle.textContent = title;
         parentTitle.textContent = '프로젝트 정의서';
 
-        // 하위 노트 = Epics 혹은 KR 타이틀 사용
         childList.innerHTML = '';
         const epics = Array.isArray(p?.epics) ? p.epics : [];
         const rows = [];
-
-        epics.forEach((ep, i)=>{
-          const name = ep?.epic?.trim() || `EPIC ${i+1}`;
-          rows.push(name);
-        });
+        epics.forEach((ep, i)=> rows.push(ep?.epic?.trim() || `EPIC ${i+1}`));
         if (!rows.length) rows.push('SMART 목표 재정의', 'EPIC 1 : 유형섬 재무기');
 
-        rows.slice(0,8).forEach(txt=>{
-          const row = el('div',{class:'child-row'},[
-            el('span',{},txt),
-            el('span',{class:'chev'},'›')
-          ]);
+        rows.slice(0,12).forEach(txt=>{
+          const row = el('div',{class:'child-row'},[ el('span',{},txt), el('span',{class:'chev'},'›') ]);
           childList.appendChild(row);
         });
-
         childCount.textContent = `(${rows.length})`;
       }
 
-      // +추가 버튼(데모)
       document.getElementById('addChild').addEventListener('click', ()=>{
         const childList = document.getElementById('childList');
         const row = document.createElement('div');
         row.className = 'child-row';
         row.innerHTML = '<span>새 하위 노트</span><span class="chev">›</span>';
         childList.appendChild(row);
-        const childCount = document.getElementById('childCount');
-        const n = childList.querySelectorAll('.child-row').length;
-        childCount.textContent = `(${n})`;
+        document.getElementById('childCount').textContent = `(${childList.querySelectorAll('.child-row').length})`;
       });
 
       document.getElementById('noteBack').addEventListener('click', ()=> history.back?.());
 
+      document.getElementById('linkBtn').addEventListener('click', ()=>{
+        const linked = { at: Date.now(), title: document.getElementById('selTitle').textContent };
+        localStorage.setItem('fw_linked_note', JSON.stringify(linked));
+        toast('노트를 연결했습니다.');
+      });
+
       renderNotePanel(loadProject());
     })();
 
-    /* ===== 우측 탭/챗/메모 ===== */
+    /* ===== 탭 스위치 ===== */
     (function(){
-      const tabs = [
-        {btn: document.getElementById('tab-chat'), panel: document.getElementById('panel-chat')},
-        {btn: document.getElementById('tab-memo'), panel: document.getElementById('panel-memo')},
-        {btn: document.getElementById('tab-reco'), panel: document.getElementById('panel-reco')}
+      const map = [
+        ['tab-chat','panel-chat'],
+        ['tab-memo','panel-memo'],
+        ['tab-reco','panel-reco'],
       ];
-      function act(i){
-        tabs.forEach((t,idx)=>{
-          t.btn.setAttribute('aria-selected', idx===i ? 'true':'false');
-          t.panel.setAttribute('data-active', idx===i ? 'true':'false');
+      function activate(id){
+        map.forEach(([b,p])=>{
+          const btn = document.getElementById(b);
+          const pan = document.getElementById(p);
+          const on = (b===id);
+          btn.setAttribute('aria-selected', on?'true':'false');
+          pan.setAttribute('data-active', on?'true':'false');
         });
       }
-      tabs.forEach((t,i)=> t.btn.onclick = ()=> act(i));
-      act(1); // 이미지처럼 기본 '챗봇' 탭 보이도록 → 0, 에디터용은 1이 메모? 원본과 맞추려면 0으로 바꿔도 됨
-      act(0);
+      map.forEach(([b])=> document.getElementById(b).addEventListener('click', ()=>activate(b)));
+      activate('tab-chat'); // 기본 챗봇
     })();
 
-    (function chatMemo(){
-      const log = document.getElementById('chatLog');
-      const input = document.getElementById('chatInput');
-      const send = document.getElementById('chatSend');
-      function push(role, text){
-        const b = document.createElement('div');
-        b.className = 'bubble ' + (role==='me'?'me':'bot');
-        b.textContent = text;
-        log.appendChild(b);
-        log.scrollTop = log.scrollHeight + 9999;
-      }
-      function sendNow(){
-        const v = input.value.trim(); if(!v) return;
-        push('me', v); input.value='';
-        setTimeout(()=> push('bot','기록했어요.'), 180);
-      }
-      send.onclick = sendNow;
-      input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); } });
+    /* ===== 에디터 기능(서식, 저장, 드롭) ===== */
+    (function(){
+      const editor = document.getElementById('editorArea');
+      const titleEl = document.getElementById('docTitle');
+      const SAVE_KEY = 'fw_editor_doc';
+      const TAG_KEY = 'fw_editor_tags';
 
+      // 로드
+      try{
+        const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        if(saved){ titleEl.value = saved.title||''; editor.innerHTML = saved.html||''; }
+      }catch(e){}
+
+      // 자동 저장(디바운스)
+      let tmr=null;
+      function autosave(){
+        if(tmr) clearTimeout(tmr);
+        tmr = setTimeout(()=> {
+          localStorage.setItem(SAVE_KEY, JSON.stringify({title:titleEl.value, html: editor.innerHTML}));
+          // 가벼운 저장 피드백
+          document.getElementById('manualSave').textContent = '저장됨';
+          setTimeout(()=>document.getElementById('manualSave').textContent='저장',800);
+        }, 300);
+      }
+      editor.addEventListener('input', autosave);
+      titleEl.addEventListener('input', autosave);
+      document.getElementById('manualSave').addEventListener('click', autosave);
+
+      // 서식 버튼
+      document.querySelectorAll('.tbtn[data-cmd]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.execCommand(btn.dataset.cmd, false, null);
+          editor.focus();
+          autosave();
+        });
+      });
+      document.getElementById('linkBtnEditor').addEventListener('click', ()=>{
+        const url = prompt('링크 URL을 입력하세요'); if(!url) return;
+        document.execCommand('createLink', false, url);
+        editor.focus(); autosave();
+      });
+      document.getElementById('imgBtn').addEventListener('click', ()=>{
+        const url = prompt('이미지 URL을 입력하세요'); if(!url) return;
+        document.execCommand('insertImage', false, url);
+        editor.focus(); autosave();
+      });
+      document.getElementById('codeBtn').addEventListener('click', ()=>{
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount===0) return;
+        const range = sel.getRangeAt(0);
+        const span = document.createElement('code');
+        span.textContent = sel.toString();
+        range.deleteContents();
+        range.insertNode(span);
+        sel.removeAllRanges();
+        autosave();
+      });
+
+      // 태그
+      const tagRow = document.getElementById('tagRow');
+      const addTagBtn = document.getElementById('addTagBtn');
+      function renderTags(){
+        Array.from(tagRow.querySelectorAll('.tag-pill')).forEach(n=> n.remove());
+        const tags = JSON.parse(localStorage.getItem(TAG_KEY) || '[]');
+        tags.forEach((t,i)=>{
+          const b = document.createElement('button');
+          b.className = 'tag-pill';
+          b.textContent = t;
+          b.addEventListener('click', ()=>{ b.classList.toggle('active'); });
+          b.addEventListener('dblclick', ()=>{
+            const arr = JSON.parse(localStorage.getItem(TAG_KEY) || '[]');
+            arr.splice(i,1); localStorage.setItem(TAG_KEY, JSON.stringify(arr)); renderTags();
+          });
+          tagRow.insertBefore(b, addTagBtn);
+        });
+      }
+      addTagBtn.addEventListener('click', ()=>{
+        const t = prompt('태그 입력'); if(!t) return;
+        const arr = JSON.parse(localStorage.getItem(TAG_KEY) || '[]');
+        arr.push(t); localStorage.setItem(TAG_KEY, JSON.stringify(arr)); renderTags();
+      });
+      renderTags();
+
+      // 메모 드래그 앤 드롭 삽입
+      function placeCaretAtEnd(el){ el.focus(); const range = document.createRange(); range.selectNodeContents(el); range.collapse(false); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+      editor.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+      editor.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        const text = e.dataTransfer.getData('text/plain');
+        if(text){
+          // 현재 커서 위치에 삽입
+          const sel = window.getSelection();
+          if(sel && sel.rangeCount){
+            sel.getRangeAt(0).deleteContents();
+            sel.getRangeAt(0).insertNode(document.createTextNode(text));
+          }else{
+            editor.appendChild(document.createTextNode(text));
+            placeCaretAtEnd(editor);
+          }
+          autosave();
+        }
+      });
+    })();
+
+    /* ===== 메모/챗 UX ===== */
+    (function(){
+      // 메모
       const memoList = document.getElementById('memoList');
       const memoInput = document.getElementById('memoInput');
       const memoAdd = document.getElementById('memoAdd');
-      const KEY = 'fw_editor_memo_list';
+      const MEMO_KEY = 'fw_editor_memo_list';
+
       function renderMemo(){
         memoList.innerHTML='';
-        (JSON.parse(localStorage.getItem(KEY) || '[]')).forEach(t=>{
-          const d = document.createElement('div'); d.className='memo-card'; d.textContent = t; memoList.appendChild(d);
+        (JSON.parse(localStorage.getItem(MEMO_KEY) || '[]')).forEach((t,idx)=>{
+          const d = document.createElement('div'); d.className='memo-card'; d.textContent = t;
+          d.draggable = true;
+          d.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', t); });
+          d.addEventListener('dblclick', ()=>{
+            const arr = JSON.parse(localStorage.getItem(MEMO_KEY) || '[]');
+            arr.splice(idx,1); localStorage.setItem(MEMO_KEY, JSON.stringify(arr)); renderMemo();
+          });
+          memoList.appendChild(d);
         });
       }
       function addMemo(){
         const v = memoInput.value.trim(); if(!v) return;
-        const arr = JSON.parse(localStorage.getItem(KEY) || '[]'); arr.push(v);
-        localStorage.setItem(KEY, JSON.stringify(arr)); memoInput.value=''; renderMemo();
+        const arr = JSON.parse(localStorage.getItem(MEMO_KEY) || '[]'); arr.push(v);
+        localStorage.setItem(MEMO_KEY, JSON.stringify(arr)); memoInput.value=''; renderMemo();
       }
       memoAdd.onclick = addMemo;
       memoInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addMemo(); }});
       renderMemo();
+
+      // 챗
+      const CHAT_KEY = 'fw_editor_chat_log';
+      const log = document.getElementById('chatLog');
+      const input = document.getElementById('chatInput');
+      const send = document.getElementById('chatSend');
+
+      function loadChat(){ try{ return JSON.parse(localStorage.getItem(CHAT_KEY) || '[]'); }catch(e){ return []; } }
+      function saveChat(list){ localStorage.setItem(CHAT_KEY, JSON.stringify(list)); }
+      function push(role, text, ts=Date.now()){
+        const b = document.createElement('div'); b.className = 'bubble ' + (role==='me'?'me':'bot'); b.textContent = text;
+        log.appendChild(b); log.scrollTop = log.scrollHeight + 9999;
+        const arr = loadChat(); arr.push({role, text, ts}); saveChat(arr);
+      }
+      function renderChat(){
+        log.innerHTML='';
+        const arr = loadChat();
+        if(arr.length===0){
+          push('bot','안녕하세요! 노트 작성을 도와드리는 AI 어시스턴트입니다. 무엇을 도와드릴까요?');
+          return;
+        }
+        arr.forEach(m=> push(m.role, m.text, m.ts));
+      }
+      function sendNow(){
+        const v = input.value.trim(); if(!v) return;
+        push('me', v); input.value='';
+        setTimeout(()=> push('bot','기록했어요.'), 160);
+      }
+      send.onclick = sendNow;
+      input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); } });
+      renderChat();
+    })();
+
+    /* ===== 작은 토스트 ===== */
+    (function(){
+      const div = document.createElement('div');
+      div.style.position='fixed'; div.style.left='50%'; div.style.bottom='24px'; div.style.transform='translateX(-50%)';
+      div.style.padding='10px 14px'; div.style.border='1px solid #E5E7EB'; div.style.background='#fff'; div.style.borderRadius='10px';
+      div.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'; div.style.fontSize='13px'; div.style.color='#111827';
+      div.style.display='none'; div.style.zIndex='9999';
+      document.body.appendChild(div);
+      window.toast = (msg)=>{
+        div.textContent = msg; div.style.display='block';
+        setTimeout(()=> div.style.display='none', 1200);
+      };
     })();
   </script>
 </body>
