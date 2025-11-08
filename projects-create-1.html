@@ -7,6 +7,7 @@ FILE: projects-create-1.html
 - 저장 시 각 Epic의 Object/KR 전부 수집
 - (변경) 마감일 선택은 '선택사항'. 날짜 없이도 모든 텍스트 입력 시 ＞ 활성화
 - (추가) 파란 원(아이콘) 클릭 → 이모지 픽커 팝오버 적용/지우기
+- (요청 반영) 상단 ＞ 버튼: 완전 투명 배경/검은색(비활성 회색), 하단 저장 버튼 제거
 ========================================================= -->
 <!doctype html>
 <html lang="ko" class="dark">
@@ -143,22 +144,35 @@ FILE: projects-create-1.html
       justify-content: start;
     }
 
+    /* ===== 상단 ＞ 버튼: 완전 투명 배경 ===== */
     .save-btn-top{
-      background:#111827; color:#fff; border:none; border-radius:8px; padding:6px 10px;
-      font-weight:700; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.12);
-      display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px;
-      transition:opacity .15s ease, filter .15s ease;
+      -webkit-appearance:none;
+      appearance:none;
+      background:transparent;            /* 완전 투명 */
+      color:#111;                        /* 기본: 검은색 */
+      border:none;                       /* 기본 버튼 테두리 제거 */
+      border-radius:0;                   /* 둥근모서리 제거 */
+      padding:6px 8px;                   /* 클릭 타깃 최소 확보 */
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:none;                   /* 그림자 제거 */
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      font-size:13px;
+      transition:opacity .12s ease, color .12s ease;
     }
-    .save-btn-top:disabled{ opacity:.5; cursor:not-allowed; filter:grayscale(0.2); }
+    .save-btn-top:hover:not(:disabled){ opacity:.85; }
+    .save-btn-top:focus-visible{ outline:2px solid #111; outline-offset:2px; }
+    .save-btn-top:disabled{
+      color:#9CA3AF;                     /* 비활성화: 회색 */
+      cursor:not-allowed;
+      opacity:.6;
+      filter:none;
+      background:transparent;
+      box-shadow:none;
+    }
 
-    .save-btn{
-      position:absolute; right:20px; bottom:20px;
-      background:#111; color:#fff; border:none; border-radius:10px;
-      padding:10px 12px; font-weight:700; cursor:pointer;
-      box-shadow:0 8px 24px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; gap:8px;
-    }
-    .save-btn:disabled{ opacity:.6; cursor:progress; }
-    .save-btn svg{ width:18px; height:18px; display:block; }
+    /* (하단 저장 버튼 DOM 자체 제거, 혹시 남아있어도 안전 차단) */
+    .save-btn{ display:none !important; }
 
     /* 공통 카드 */
     .proj-card{
@@ -427,11 +441,7 @@ FILE: projects-create-1.html
                 </div>
               </div>
 
-              <button id="saveBtn" class="save-btn" type="button" title="저장하고 프로젝트 목록으로 이동">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M4 3h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm11 2H5v6h10V5zm-2 8H7v6h6v-6z"/>
-                </svg>
-              </button>
+              <!-- (요청) 우측 하단 저장 버튼 제거됨 -->
             </section>
           </section>
         </section>
@@ -564,6 +574,7 @@ FILE: projects-create-1.html
       card.innerHTML = `
         <div class="proj-toprow">
           <div class="proj-texts">
+            <div class="proj-title">Epic ${index} → Object → KR</div>
             <div class="okr-rows">
               <div class="okr-row" data-okr-epic>
                 <span class="okr-badge">Epic ${index}</span>
@@ -872,11 +883,11 @@ FILE: projects-create-1.html
       }, { passive:true });
     }
 
-    /* 저장/자동저장 */
-    const saveBtn = document.getElementById('saveBtn');
+    /* 저장/자동저장 (하단 버튼 제거로 클릭 바인딩은 자연히 미동작) */
+    // const saveBtn = document.getElementById('saveBtn'); // 제거됨
 
-    if (saveBtn) saveBtn.addEventListener('click', ()=> handleSave({ redirect:true }));
-    if (saveBtnTop) saveBtnTop.addEventListener('click', ()=> {
+    // if (saveBtn) saveBtn.addEventListener('click', ()=> handleSave({ redirect:true }));
+    if (saveBtnTop) saveBtnTop.addEventListener('click', ()=>{
       const res = validateAllRequired();
       if (!res.ok){
         toast(`모든 텍스트를 먼저 채워주세요 (${res.missing}칸 미완료)`);
@@ -934,8 +945,7 @@ FILE: projects-create-1.html
 
     function handleSave(opts={redirect:false}){
       const { redirect } = opts;
-      if (redirect) saveBtn.disabled = true;
-
+      // 하단 저장 버튼 제거로 호출 경로 없음(원 로직 유지)
       const project = collectDraftFromDOM();
       try{
         window.__fw_draft_id = project.id;
@@ -952,8 +962,6 @@ FILE: projects-create-1.html
       }catch(err){
         console.error(err);
         toast('저장 중 오류가 발생했습니다');
-      }finally{
-        if (redirect) saveBtn.disabled = false;
       }
     }
 
