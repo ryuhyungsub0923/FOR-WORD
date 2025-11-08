@@ -1,6 +1,7 @@
 <!-- =========================================================
 FILE: projects-create-2.html
-(가로 간격 확장 + 연결선 겹침 최소화: 다중 레인/스템 적용)
+(가로 간격 확장 + 연결선 겹침 최소화: 다중 레인/스템 적용 + 이모지 픽커 동일 적용)
+— 변경: 저장 버튼 투명 배경·검은색, 모든 Task가 비어 있으면 비활성(회색)
 ========================================================= -->
 <!doctype html>
 <html lang="ko" class="dark">
@@ -27,7 +28,7 @@ FILE: projects-create-2.html
       /* === 레이아웃 토큰 === */
       --page-max: 1450px;
 
-      /* ⬆️ 열 사이 가로 간격 더 넓힘 */
+      /* 열 사이 가로 간격 더 넓힘 */
       --col-gap-x: 72px;     /* (기존 44px → 72px) */
       --col-gap-y: 35px;     /* 세로 간격 */
 
@@ -53,11 +54,11 @@ FILE: projects-create-2.html
       --new-card-min-h: 220px;
 
       /* 연결선 토큰 (더 얇고 덜 겹치게) */
-      --conn-stroke: 1;                      /* 얇게 */
-      --conn-color: rgba(0,0,0,0.14);        /* 살짝 연하게 */
-      --conn-left-pad: 18px;                 /* Epic에서 수평으로 빠지는 여유 */
-      --conn-right-pad: 16px;                /* 3열 AddBox 접근 여유 */
-      --conn-start-offset-step: 6px;         /* 시작 스템 세로 오프셋 간격 */
+      --conn-stroke: 1;
+      --conn-color: rgba(0,0,0,0.14);
+      --conn-left-pad: 18px;
+      --conn-right-pad: 16px;
+      --conn-start-offset-step: 6px;
     }
     body{ overflow:hidden; font-family:Pretendard, system-ui, sans-serif; letter-spacing:-0.02em; }
     .tap-highlight-clear{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
@@ -118,20 +119,21 @@ FILE: projects-create-2.html
       color:#000; overflow:hidden;
     }
 
-    .save-btn-top{
-      background:#111827; color:#fff; border:none; border-radius:8px; padding:6px 10px;
-      font-weight:700; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.12);
-      display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px;
-    }
-    .save-btn-top:disabled{ opacity:.6; cursor:progress; }
+    /* 상단 저장 버튼: 투명 배경 + 검은색, 비활성 회색 */
     .save-btn{
-      position:absolute; right:20px; bottom:20px;
-      background:#111; color:#fff; border:none; border-radius:10px;
-      padding:10px 12px; font-weight:700; cursor:pointer;
-      box-shadow:0 8px 24px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; gap:8px;
+      background:transparent; color:#000; border:1px solid rgba(0,0,0,0.15);
+      border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer;
+      box-shadow:none; display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
     }
-    .save-btn:disabled{ opacity:.6; cursor:progress; }
+    .save-btn:hover{ background:rgba(0,0,0,0.04); }
+    .save-btn:disabled{
+      color:#9CA3AF; border-color:#E5E7EB; background:transparent;
+      opacity:1; cursor:not-allowed; box-shadow:none;
+    }
+
     .save-btn svg{ width:18px; height:18px; display:block; }
+
     .board-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-right:20px; }
     .board-head-left{ font-size:16px; font-weight:600; color:#000; }
 
@@ -284,6 +286,25 @@ FILE: projects-create-2.html
       #card3 .epic-rows, .okr-rows{ max-width:100%; }
       .new-proj-card{ width:100%; }
     }
+
+    /* === 이모지 픽커 팝오버 (Step1과 동일) === */
+    .emoji-pop{
+      position:fixed; z-index:10000; min-width:248px; max-width:320px;
+      background:#fff; color:#000; border:1px solid rgba(0,0,0,0.12); border-radius:10px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.2); padding:10px;
+    }
+    .emoji-pop .title{ font-size:12px; font-weight:700; color:#111827; margin-bottom:8px; }
+    .emoji-pop .grid{ display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; }
+    .emoji-pop button.emoji-btn{
+      width:28px; height:28px; border-radius:6px; background:#f8fafc; border:1px solid rgba(0,0,0,0.06);
+      font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+    .emoji-pop button.emoji-btn:hover{ background:#eef2ff; }
+    .emoji-pop .tools{ display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+    .emoji-pop .tools button{
+      height:28px; padding:0 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f3f4f6; font-size:12px; font-weight:600; cursor:pointer;
+    }
+    .emoji-pop .tools button.primary{ background:#111827; color:#fff; border-color:#111827; }
   </style>
 </head>
 
@@ -310,26 +331,26 @@ FILE: projects-create-2.html
 
     <nav class="sidebar-nav-container text-sm">
       <a href="home.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
-        <img src="home_assets/Main_icon.svg" alt="Main" class="w-[20px] h-[20px] object-contain"/>
+        <img src="home_assets/Main_icon.svg" alt="Main" class="w/[20px] h/[20px] object-contain"/>
         <span class="nav-label">Main</span>
       </a>
       <a href="editor.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
-        <img src="home_assets/Editor_icon.svg" alt="Editor View" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <img src="home_assets/Editor_icon.svg" alt="Editor View" class="w/[20px] h/[20px] object-contain opacity-70"/>
         <span class="nav-label">Editor View</span>
       </a>
       <a href="projects.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
-        <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[20px] h-[20px] object-contain"/>
+        <img src="home_assets/Project_icon.svg" alt="Projects" class="w/[20px] h/[20px] object-contain"/>
         <span class="nav-label">Projects</span>
       </a>
       <a href="graph.html" class="sidebar-nav-btn tap-highlight-clear mb-[16px] hover:bg-white/10">
-        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph" class="w-[20px] h-[20px] object-contain opacity-70"/>
+        <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph" class="w/[20px] h/[20px] object-contain opacity-70"/>
         <span class="nav-label">Knowledge Graph</span>
       </a>
 
       <div class="sidebar-divider"></div>
 
-      <a href="social.html" class="sidebar-nav-btn tap-highlight-clear mb-[4px] hover:bg-white/10">
-        <img src="home_assets/Social_icon.svg" alt="Social" class="w-[20px] h-[20px] object-contain opacity-70"/>
+      <a href="social.html" class="sidebar-nav-btn tap-highlight-clear mb/[4px] hover:bg-white/10">
+        <img src="home_assets/Social_icon.svg" alt="Social" class="w/[20px] h/[20px] object-contain opacity-70"/>
         <span class="nav-label">Social</span>
       </a>
     </nav>
@@ -351,23 +372,23 @@ FILE: projects-create-2.html
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg"
        style="height:var(--mobile-nav-h);">
     <a href="home.html" class="mobile-nav-btn">
-      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain"/>
+      <img src="home_assets/Main_icon.svg" alt="Main" class="w/[24px] h/[24px] object-contain"/>
       <span>Main</span>
     </a>
     <a href="editor.html" class="mobile-nav-btn">
-      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain"/>
+      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w/[24px] h/[24px] object-contain"/>
       <span>Editor</span>
     </a>
     <a href="projects.html" class="mobile-nav-btn">
-      <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[24px] h-[24px] object-contain"/>
+      <img src="home_assets/Project_icon.svg" alt="Projects" class="w/[24px] h/[24px] object-contain"/>
       <span>Projects</span>
     </a>
     <a href="graph.html" class="mobile-nav-btn">
-      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w-[24px] h-[24px] object-contain opacity-70"/>
+      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w/[24px] h/[24px] object-contain opacity-70"/>
       <span>Graph</span>
     </a>
     <a href="social.html" class="mobile-nav-btn">
-      <img src="home_assets/Social_icon.svg" alt="Social" class="w-[24px] h-[24px] object-contain"/>
+      <img src="home_assets/Social_icon.svg" alt="Social" class="w/[24px] h/[24px] object-contain"/>
       <span>Social</span>
     </a>
   </nav>
@@ -384,7 +405,12 @@ FILE: projects-create-2.html
             <section class="board-shell">
               <div class="board-head-row">
                 <div class="board-head-left">My Projects</div>
-                <button id="saveBtnTop" class="save-btn-top" type="button" title="퀵세이브(＞)">＞</button>
+                <!-- 저장 버튼: 투명/검정, 기본 비활성 -->
+                <button id="saveBtn" class="save-btn" type="button" title="작업을 하나 이상 입력하면 저장할 수 있어요" disabled>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M4 3h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm11 2H5v6h10V5zm-2 8H7v6h6v-6z"/>
+                  </svg>
+                </button>
               </div>
 
               <div class="projects-scroller" id="projectsScroll">
@@ -420,12 +446,6 @@ FILE: projects-create-2.html
                   <div class="projects-col" id="col3"><!-- KR별 AddBox --></div>
                 </div>
               </div>
-
-              <button id="saveBtn" class="save-btn" type="button" title="저장하고 프로젝트 목록으로 이동">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M4 3h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm11 2H5v6h10V5zm-2 8H7v6h6v-6z"/>
-                </svg>
-              </button>
             </section>
           </section>
         </section>
@@ -443,7 +463,7 @@ FILE: projects-create-2.html
     </div>
   </dialog>
 
-  <!-- Emoji (reserved) -->
+  <!-- Emoji (reserved, not used directly) -->
   <dialog id="emojiDialog"></dialog>
 
   <script>
@@ -465,6 +485,7 @@ FILE: projects-create-2.html
     const projectsScroll = document.getElementById('projectsScroll');
     const projectsRow   = document.getElementById('projectsRow');
     const connSvg       = document.getElementById('connSvg');
+    const saveBtn       = document.getElementById('saveBtn');
 
     const DRAFT_KEY = 'fw_project_draft_v2';
     const LIST_KEY  = 'fw_projects';
@@ -487,13 +508,21 @@ FILE: projects-create-2.html
       }
     }
     function focusFirst(selector){ const el = document.querySelector(selector); if (el){ requestAnimationFrame(()=> el.focus()); } return el; }
-    function firstGrapheme(str){ if (!str) return ''; const arr = Array.from(str.trim()); return arr.length ? arr[0] : ''; }
 
     function getKrText(epicIndex, krIndex){
       const epicCard = document.getElementById(`card-epicbox-${epicIndex}`);
       if (!epicCard) return '';
       const krEl = epicCard.querySelector(`.okr-row[data-kr-row="${krIndex}"] .kr-input`);
       return (krEl?.textContent || '').trim();
+    }
+
+    /* 저장 버튼 활성/비활성 갱신 */
+    function updateSaveButtonState(){
+      if (!saveBtn) return;
+      const taskInputs = [...projectsRow.querySelectorAll('.task-input')];
+      const hasAnyValue = taskInputs.some(el => (el.textContent || '').trim().length > 0);
+      saveBtn.disabled = !hasAnyValue;
+      saveBtn.title = hasAnyValue ? '저장하고 프로젝트 목록으로 이동' : '작업을 하나 이상 입력하면 저장할 수 있어요';
     }
 
     /* 카드 팩토리 */
@@ -641,6 +670,7 @@ FILE: projects-create-2.html
       addBoxes.forEach(el=> col3.appendChild(el));
 
       if (!mobile) drawConnections(); else clearConnections();
+      updateSaveButtonState();
     }
 
     function clearConnections(){ if (!connSvg) return; connSvg.innerHTML = ''; }
@@ -663,7 +693,6 @@ FILE: projects-create-2.html
       const rightPad = parseFloat(cs.getPropertyValue('--conn-right-pad')) || 16;
       const offsetStep = parseFloat(cs.getPropertyValue('--conn-start-offset-step')) || 6;
 
-      // 1) epicIndex별 AddBox를 그룹핑
       const groups = new Map();
       const addBoxes = [...projectsRow.querySelectorAll('[data-addbox="true"]')];
       addBoxes.forEach(box=>{
@@ -673,9 +702,7 @@ FILE: projects-create-2.html
         groups.get(eIdx).push({ box, kIdx });
       });
 
-      // 2) 각 Epic 그룹마다 레인을 분배하여 직각 경로를 그림
       groups.forEach((items, epicIndex)=>{
-        // KR 순서대로
         items.sort((a,b)=> a.kIdx - b.kIdx);
 
         const epicCard = document.getElementById(`card-epicbox-${epicIndex}`);
@@ -686,20 +713,17 @@ FILE: projects-create-2.html
         const y1 = (a.top + a.height/2 - pr.top);
 
         const cnt = items.length;
-        const baseOffsets = items.map((_, i)=> (i - (cnt-1)/2) * offsetStep); // 시작부 세로 스템 분리
+        const baseOffsets = items.map((_, i)=> (i - (cnt-1)/2) * offsetStep);
 
         items.forEach((item, idx)=>{
           const b = item.box.getBoundingClientRect();
           const x2 = (b.left - pr.left);
           const y2 = (b.top + b.height/2 - pr.top);
 
-          const gap = Math.max(40, x2 - x1);               // 두 열 사이 실제 가로 간격
+          const gap = Math.max(40, x2 - x1);
           const usable = Math.max(24, gap - leftPad - rightPad);
 
-          // 레인 X: (cnt+1) 균등분할, 각 KR별 서로 다른 레인으로 배정
           const laneX = x1 + leftPad + usable * ((idx+1)/(cnt+1));
-
-          // 시작 스템으로 Epic 접점에서 세로로 살짝 분리 후 레인 진입
           const ys = y1 + baseOffsets[idx];
 
           const path = document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -868,19 +892,21 @@ FILE: projects-create-2.html
       }
     });
     projectsRow.addEventListener('input', (e)=>{
-      if (e.target.classList?.contains('kr-input') || e.target.classList?.contains('okr-input') || e.target.classList?.contains('task-input')){
-        if (e.target.classList?.contains('kr-input')){
-          const epicCard = e.target.closest('[data-epicbox="true"]');
+      const t = e.target;
+      if (t.classList?.contains('kr-input') || t.classList?.contains('okr-input') || t.classList?.contains('task-input')){
+        if (t.classList?.contains('kr-input')){
+          const epicCard = t.closest('[data-epicbox="true"]');
           const epicIndex = [...projectsRow.querySelectorAll('[data-epicbox="true"]')].indexOf(epicCard) + 1;
-          const krIndex = parseInt(e.target.closest('.okr-row')?.getAttribute('data-kr-row')||'0',10);
+          const krIndex = parseInt(t.closest('.okr-row')?.getAttribute('data-kr-row')||'0',10);
           const addBox = document.getElementById(`card-addbox-e${epicIndex}-kr${krIndex}`);
           if (addBox){
             const labelEl = addBox.querySelector('.okr-row:first-child .okr-input');
-            if (labelEl){ labelEl.textContent = (e.target.textContent || '').trim() || '추가 박스'; }
+            if (labelEl){ labelEl.textContent = (t.textContent || '').trim() || '추가 박스'; }
           }
         }
         saveDraftDebounced();
       }
+      if (t.classList?.contains('task-input')) updateSaveButtonState();
     });
     projectsRow.addEventListener('click', (e)=>{
       const del = e.target.closest('[data-remove-kr]');
@@ -920,6 +946,7 @@ FILE: projects-create-2.html
         }
         refreshPlacement(); saveDraftDebounced();
         updateTaskCounter();
+        updateSaveButtonState();
       }
     });
 
@@ -964,6 +991,7 @@ FILE: projects-create-2.html
           </svg>
         </button>`;
       rowsWrap.appendChild(row);
+      updateSaveButtonState();
       return row.querySelector('.task-input');
     }
     function renumberTasks(card){
@@ -1008,10 +1036,10 @@ FILE: projects-create-2.html
     }
 
     /* 저장 */
-    const saveBtn = document.getElementById('saveBtn');
-    const saveBtnTop = document.getElementById('saveBtnTop');
-    if (saveBtn) saveBtn.addEventListener('click', ()=> handleSave({ redirect:true }));
-    if (saveBtnTop) saveBtnTop.addEventListener('click', ()=> handleSave({ redirect:false }));
+    if (saveBtn) saveBtn.addEventListener('click', ()=>{
+      if (saveBtn.disabled){ toast('작업을 하나 이상 입력해 주세요'); return; }
+      handleSave({ redirect:true });
+    });
 
     function collectDraftFromDOM(){
       const title = (document.getElementById('title1')?.textContent || '').trim();
@@ -1063,7 +1091,7 @@ FILE: projects-create-2.html
 
     function handleSave(opts={redirect:false}){
       const { redirect } = opts;
-      if (redirect) saveBtn.disabled = true; else saveBtnTop.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
 
       const project = collectDraftFromDOM();
       try{
@@ -1086,7 +1114,8 @@ FILE: projects-create-2.html
         console.error(err);
         toast('저장 중 오류가 발생했습니다');
       }finally{
-        if (redirect) saveBtn.disabled = false; else saveBtnTop.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+        updateSaveButtonState();
       }
     }
 
@@ -1140,6 +1169,7 @@ FILE: projects-create-2.html
       reindexCards();
       refreshPlacement();
       updateTaskCounter();
+      updateSaveButtonState();
     }
 
     function newProject(){
@@ -1157,24 +1187,83 @@ FILE: projects-create-2.html
       location.href = 'projects-create-1.html';
     }
 
+    /* ===== 이모지 픽커 (Step1과 동일 로직) ===== */
+    const EMOJI_SET = "🚀✨🔥💡🎯🛠️📚📈🧠🧪🧩🎨🗂️📝🗓️⏱️🔍✅💻📱🤝🌱🏁🔧🔬🧵📣💬🧭🗺️".split("");
+    let emojiPop = null; let emojiPopOpen = false;
+
+    function buildEmojiPop(){
+      const d = document.createElement('div');
+      d.className = 'emoji-pop';
+      d.innerHTML = `
+        <div class="title">이모지 선택</div>
+        <div class="grid">${EMOJI_SET.map(e=>`<button class="emoji-btn" type="button" data-emoji="${e}">${e}</button>`).join('')}</div>
+        <div class="tools">
+          <button type="button" data-act="clear">지우기</button>
+          <button type="button" class="primary" data-act="close">닫기</button>
+        </div>`;
+      return d;
+    }
+    function openEmojiPop(anchor){
+      if (!emojiPop){ emojiPop = buildEmojiPop(); document.body.appendChild(emojiPop); bindEmojiPopEvents(); }
+      const r = anchor.getBoundingClientRect();
+      const top = Math.min(window.innerHeight - 280, r.bottom + 8);
+      const left = Math.min(window.innerWidth - 320, r.left);
+      emojiPop.style.top  = `${Math.max(8, top)}px`;
+      emojiPop.style.left = `${Math.max(8, left)}px`;
+      emojiPop.style.display = 'block';
+      emojiPopOpen = true;
+      setTimeout(()=> document.addEventListener('mousedown', outsideClose, { once:true }), 0);
+    }
+    function closeEmojiPop(){
+      if (emojiPop){ emojiPop.style.display = 'none'; }
+      emojiPopOpen = false;
+    }
+    function outsideClose(ev){
+      if (!emojiPopOpen) return;
+      const target = ev.target;
+      if (emojiPop && !emojiPop.contains(target) && !document.getElementById('iconWrap').contains(target)){
+        closeEmojiPop();
+      }
+    }
+    function bindEmojiPopEvents(){
+      emojiPop.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const act = btn.getAttribute('data-act');
+        if (act === 'clear'){
+          setIconEmoji('');
+          closeEmojiPop();
+          return;
+        }
+        if (act === 'close'){ closeEmojiPop(); return; }
+        const emoji = btn.getAttribute('data-emoji');
+        if (emoji){
+          setIconEmoji(emoji);
+          closeEmojiPop();
+        }
+      });
+      document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeEmojiPop(); });
+    }
+
     const iconWrapBuilder = document.getElementById('iconWrap');
+    function setIconEmoji(emoji){
+      if (!iconWrapBuilder) return;
+      if (emoji && Array.from(emoji).length > 0){
+        iconWrapBuilder.setAttribute('data-emoji', Array.from(emoji)[0]);
+        iconWrapBuilder.innerHTML = `<span class="emoji">${Array.from(emoji)[0]}</span>`;
+      } else {
+        iconWrapBuilder.removeAttribute('data-emoji');
+        iconWrapBuilder.textContent = 'LOGO';
+      }
+      saveDraftDebounced();
+    }
     if (iconWrapBuilder){
       iconWrapBuilder.addEventListener('click', ()=>{
-        const cur = iconWrapBuilder.getAttribute('data-emoji') || '';
-        const input = prompt('이모지를 입력 (1글자). 비우면 LOGO로 돌아갑니다.', cur);
-        if (input === null) return;
-        const emoji = firstGrapheme(input);
-        if (emoji){
-          iconWrapBuilder.setAttribute('data-emoji', emoji);
-          iconWrapBuilder.innerHTML = `<span class="emoji">${emoji}</span>`;
-        } else {
-          iconWrapBuilder.removeAttribute('data-emoji');
-          iconWrapBuilder.textContent = 'LOGO';
-        }
-        saveDraftDebounced();
+        if (emojiPopOpen) closeEmojiPop(); else openEmojiPop(iconWrapBuilder);
       });
     }
 
+    /* ===== 부팅: 초안 복원 + 레이아웃 ===== */
     window.addEventListener('load', ()=>{
       refreshPlacement();
       const skipRestore = (qs.get('new') === '1');
@@ -1195,19 +1284,7 @@ FILE: projects-create-2.html
                 dueBtnEl.setAttribute('data-value', draft.dueDate);
               }
 
-              const iconWrap = document.getElementById('iconWrap');
-              function setIconEmoji(emoji){
-                if (!iconWrap) return;
-                if (emoji && Array.from(emoji).length > 0){
-                  iconWrap.setAttribute('data-emoji', Array.from(emoji)[0]);
-                  iconWrap.innerHTML = `<span class="emoji" aria-label="프로젝트 이모지">${Array.from(emoji)[0]}</span>`;
-                } else {
-                  iconWrap.removeAttribute('data-emoji');
-                  iconWrap.textContent = 'LOGO';
-                }
-                saveDraftDebounced();
-              }
-              if (draft.iconEmoji) setIconEmoji(draft.iconEmoji); else setIconEmoji('');
+              setIconEmoji(draft.iconEmoji || '');
 
               if ((draft.background ?? '').length){
                 ensureCard2(false);
@@ -1243,6 +1320,7 @@ FILE: projects-create-2.html
               syncKrAddBoxes();
               refreshPlacement();
               updateTaskCounter();
+              updateSaveButtonState();
               return;
             }
           }
@@ -1254,8 +1332,9 @@ FILE: projects-create-2.html
         document.getElementById('title1').textContent = '새 프로젝트 1...';
         const dueBtnEl = document.getElementById('dueDateBtn');
         if (dueBtnEl){ dueBtnEl.textContent='Due Date: 클릭하여 선택'; dueBtnEl.classList.remove('filled'); dueBtnEl.setAttribute('data-value',''); }
-        const iconWrap = document.getElementById('iconWrap'); if (iconWrap){ iconWrap.removeAttribute('data-emoji'); iconWrap.textContent='LOGO'; }
+        setIconEmoji('');
         reindexCards(); refreshPlacement();
+        updateSaveButtonState();
       }catch(e){ console.error('복원 실패', e); }
     });
 
@@ -1278,6 +1357,7 @@ FILE: projects-create-2.html
           requestAnimationFrame(()=> newTask?.focus());
           saveDraftDebounced();
           updateTaskCounter();
+          updateSaveButtonState();
         }
       }
     });
