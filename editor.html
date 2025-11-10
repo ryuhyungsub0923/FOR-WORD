@@ -1,9 +1,12 @@
 <!-- =========================================================
 FILE: editor.html
-요구 반영:
-- 중앙 패널 가로 꽉 차게 표시(A4 비율 유지, 스케일 적용)
-- A4 세로 초과 시 실제 DOM 구분선(.page-divider) 자동 삽입
-- 이미지/표 포함 긴 문서도 자동 분할
+업데이트 요약:
+- 이미지 업로드(파일/드롭/붙여넣기) → DataURL 삽입로직 확정
+- 페이지 자동 분할 엔진 개선 + 실제 DOM 구분선(.page-divider) 삽입
+- 한글/워드 붙여넣기 플레이스홀더(“그림입니다…”) 제거
+- 중앙 패널은 가로 100% 유지, 내부 A4 페이지 정중앙
+- 좌측 패널 디자인: 기존 그대로 유지
+- [중요] PSST는 폴더 전용 노드: 클릭 시 토글만, 노트 생성/열기 금지
 ========================================================= -->
 <!doctype html>
 <html lang="ko" class="dark">
@@ -47,9 +50,9 @@ FILE: editor.html
       --editor-min-h: 520px;
       --docbar-h: 56px;
 
-      /* A4 실제 크기(기준 단위: mm) — 내부는 이 크기를 기준으로 분할 */
-      --page-w: 210mm; /* A4 */
-      --page-h: 297mm; /* A4 */
+      /* A4 보기 */
+      --page-w: 210mm;
+      --page-h: 297mm;
       --page-pad: 16mm;
       --page-gap: 10mm;
       --page-shadow: 0 8px 28px rgba(0,0,0,.10);
@@ -59,7 +62,7 @@ FILE: editor.html
     body{ overflow:hidden; color:var(--ink-1); }
     #noteCol, .center-wrap, .right-col{ content-visibility:auto; contain-intrinsic-size:800px 1000px; }
 
-    /* ===== Sidebar (기존 디자인 유지) ===== */
+    /* ===== Sidebar (기존 유지) ===== */
     .sidebar{ width:var(--sidebar-w); background:linear-gradient(to bottom, var(--sb-nav-top), var(--sb-nav-bottom)); transition:width .18s ease; }
     .sidebar[data-collapsed="true"]{ width:var(--sidebar-w-collapsed); }
     .brand-text{ font-size:18px; font-weight:600; color:#fff; letter-spacing:-0.02em; white-space:nowrap; }
@@ -85,7 +88,7 @@ FILE: editor.html
     .main-bg{ background:linear-gradient(to bottom, var(--sb-main-top), var(--sb-main-bottom)); }
     .mobile-nav-bg{ background:linear-gradient(to bottom, var(--sb-nav-top), var(--sb-nav-bottom)); }
 
-    /* ===== 좌측 목차(기존 유지) ===== */
+    /* ===== 좌측 목차 (기존 그대로) ===== */
     #noteCol{ width:var(--index-w); background:#fff; color:#0F172A; display:flex; flex-direction:column; border-right:1px solid var(--divider); height:100vh; }
     .note-head{ height:44px; display:flex; align-items:center; gap:6px; padding:0 10px; border-bottom:1px solid var(--divider); font-size:12px; color:#6B7280; }
     .note-scroll{ flex:1; overflow:auto; padding:10px; }
@@ -108,7 +111,6 @@ FILE: editor.html
     .doc-title{ font-size:14px; color:#999; outline:none; border:none; background:transparent; flex:1 1 auto; min-width:0; margin-right:8px; height:calc(var(--docbar-h) - 2px); line-height:calc(var(--docbar-h) - 2px); padding:0; }
     .doc-actions{ display:flex; align-items:center; gap:14px; font-size:12px; color:#374151; }
     .chip{ font-size:12px; padding:4px 8px; border-radius:999px; background:#111827; color:#fff; font-weight:700; }
-
     .toolbar-wrap{ border-bottom:1px solid var(--divider); background:#F9FAFB; }
     .tag-row{ height:40px; display:flex; align-items:center; gap:8px; padding:0 12px; }
     .tag-pill{ font-size:12px; border:1px solid #E5E7EB; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; color:#374151; }
@@ -118,30 +120,24 @@ FILE: editor.html
     .tbtn{ height:28px; min-width:28px; padding:0 8px; border-radius:6px; border:1px solid #D1D5DB; background:#fff; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; cursor:pointer; color:#111827; }
     .tsep{ height:28px; width:1px; background:#E5E7EB; margin:0 2px; }
 
-    /* 중앙 에디터 스크롤 컨테이너: 가로 꽉 차게 */
+    /* 스크롤 컨테이너: 가로 100% + 내부 A4 중앙 정렬 */
     .editor-area{
       flex:1 1 auto; min-height:0; overflow:auto; background:#f7f7f8;
-      padding:16px 12px 56px; /* 상·좌우·하 */
+      padding-left: max(12px, calc((100% - var(--page-w))/2));
+      padding-right: max(12px, calc((100% - var(--page-w))/2));
+      padding-top:16px;
+      padding-bottom: calc(16px + 56px);
     }
 
-    /* 페이지 루트(연속 레이아웃) */
+    /* 페이지 루트 */
     .page-root{
       min-height:calc(var(--editor-min-h) - 32px);
-      display:flex; flex-direction:column; gap:0;
+      display:flex; flex-direction:column; align-items:center; gap:0;
+      counter-reset: page;
     }
-
-    /* 스케일 래퍼: 가로 폭 꽉 채우기(내부 .page를 scale) */
-    .page-outer{
-      position:relative;
-      width:100%;
-      /* 높이는 JS가 내부 .page 높이×scale로 설정 */
-      display:flex;
-      justify-content:center;
-    }
-
-    /* 실제 A4 페이지(기준 크기) */
     .page{
       position:relative;
+      counter-increment: page;
       width:var(--page-w);
       min-height:var(--page-h);
       background:#fff; color:#111827;
@@ -152,18 +148,21 @@ FILE: editor.html
       margin:0;
       box-sizing:border-box;
       overflow:hidden;
-      transform-origin:top center; /* 스케일 기준 */
     }
 
-    /* 실제 DOM 구분선 (페이지 사이) */
+    /* 실제 DOM 구분선 */
     .page-divider{
-      width:100%; /* JS에서 실제 스케일 폭으로 맞춰줌 */
+      width:var(--page-w);
       display:flex; flex-direction:column; align-items:center;
-      margin: calc(var(--page-gap)/2) auto;
+      margin: calc(var(--page-gap)/2) 0;
       user-select:none; pointer-events:none;
     }
-    .page-divider .line{ width:100%; border-top:1px dashed #cbd5e1; }
-    .page-divider .badge{ margin-top:6px; font-size:12px; color:#94a3b8; }
+    .page-divider .line{
+      width:100%; border-top:1px dashed #cbd5e1;
+    }
+    .page-divider .badge{
+      margin-top:6px; font-size:12px; color:#94a3b8;
+    }
 
     /* 콘텐츠 규칙 */
     .page *{ break-inside:auto; }
@@ -173,7 +172,22 @@ FILE: editor.html
     .page h3{ font-size:16px; font-weight:700; margin:12px 0; }
     .page table{ width:100%; border-collapse:collapse; margin:10px 0; }
     .page th,.page td{ border:1px solid #e5e7eb; padding:6px 8px; font-size:13px; vertical-align:top; }
-    .page img{ display:block; margin:8px auto; max-width:100%; height:auto; object-fit:contain; }
+    .page img{
+      display:block; margin:8px auto;
+      max-width:100%; height:auto;
+      max-height: calc(var(--page-h) - 2*var(--page-pad));
+      object-fit:contain;
+    }
+
+    /* 연속보기 토글(필요시) */
+    .page-root[data-page-view="false"]{ align-items:stretch; }
+    .page-root[data-page-view="false"] .page{ width:auto; min-height:auto; box-shadow:none; border:none; border-radius:0; padding:0; overflow:visible; }
+    .page-root[data-page-view="false"] .page-divider{ display:none; }
+
+    .editor-placeholder:empty::before{
+      content:'클릭하여 작성을 시작하세요. 좌측 목차에서 문서를 전환할 수 있습니다.';
+      color:#9CA3AF;
+    }
 
     /* ===== 우측 ===== */
     .right-col{ width:var(--right-w); background:#FAFAFB; display:flex; flex-direction:column; height:100vh; border-left:1px solid var(--divider); color:#111827; }
@@ -182,7 +196,6 @@ FILE: editor.html
     .tab[aria-selected="true"]{ background:#F3F4F6; }
     .panel{ display:none; height:calc(100vh - 44px); }
     .panel[data-active="true"]{ display:flex; flex-direction:column; }
-
     .chat-log{ flex:1 1 auto; overflow:auto; padding:12px; }
     .bubble{ max-width:85%; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.55; }
     .bot{ background:#FFFFFF; border:1px solid #E5E7EB; color:#111827; margin-right:auto; box-shadow:0 1px 2px rgba(0,0,0,.04); }
@@ -238,24 +251,19 @@ FILE: editor.html
         <img src="home_assets/Main_icon.svg" alt="Main" class="w-[20px] h-[20px] object-contain" loading="lazy"/>
         <span class="nav-label">Main</span>
       </a>
-
       <a href="editor.html" class="sidebar-nav-btn mb-[4px] bg-white/10 hover:bg-white/15">
         <img src="home_assets/Editor_icon.svg" alt="Editor View" class="w-[20px] h-[20px] object-contain" loading="lazy"/>
         <span class="nav-label">Editor View</span>
       </a>
-
       <a href="projects.html" class="sidebar-nav-btn mb-[4px] hover:bg-white/10">
         <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[20px] h-[20px] object-contain opacity-70" loading="lazy"/>
         <span class="nav-label">Projects</span>
       </a>
-
       <a href="graph.html" class="sidebar-nav-btn mb-[16px] hover:bg-white/10">
         <img src="home_assets/Graph_icon.svg" alt="Knowledge Graph" class="w-[20px] h-[20px] object-contain opacity-70" loading="lazy"/>
         <span class="nav-label">Knowledge Graph</span>
       </a>
-
       <div class="sidebar-divider"></div>
-
       <a href="social.html" class="sidebar-nav-btn mb-[4px] hover:bg-white/10">
         <img src="home_assets/Social_icon.svg" alt="Social" class="w-[20px] h-[20px] object-contain" loading="lazy"/>
         <span class="nav-label">Social</span>
@@ -280,28 +288,23 @@ FILE: editor.html
   <!-- MOBILE NAV -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg" style="height:var(--mobile-nav-h);">
     <a href="home.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain" loading="lazy"/>
-      <span>Main</span>
+      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain" loading="lazy"/><span>Main</span>
     </a>
     <a href="editor.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain" loading="lazy"/>
-      <span>Editor</span>
+      <img src="home_assets/Editor_icon.svg" alt="Editor" class="w-[24px] h-[24px] object-contain" loading="lazy"/><span>Editor</span>
     </a>
     <a href="projects.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[24px] h-[24px] object-contain" loading="lazy"/>
-      <span>Projects</span>
+      <img src="home_assets/Project_icon.svg" alt="Projects" class="w-[24px] h-[24px] object-contain" loading="lazy"/><span>Projects</span>
     </a>
     <a href="graph.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w/[24px] h-[24px] object-contain opacity-70" loading="lazy"/>
-      <span>Graph</span>
+      <img src="home_assets/Graph_icon.svg" alt="Graph" class="w-[24px] h-[24px] object-contain opacity-70" loading="lazy"/><span>Graph</span>
     </a>
     <a href="social.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Social_icon.svg" alt="Social" class="w/[24px] h/[24px] object-contain" loading="lazy"/>
-      <span>Social</span>
+      <img src="home_assets/Social_icon.svg" alt="Social" class="w/[24px] h/[24px] object-contain" loading="lazy"/><span>Social</span>
     </a>
   </nav>
 
-  <!-- 좌측: (모든 프로젝트) 목차 -->
+  <!-- 좌측 목차 -->
   <aside id="noteCol" class="hidden md:flex flex-col shrink-0">
     <div class="note-head"><span>목차 — All Projects</span></div>
     <div class="note-scroll"><div id="tocRoot" class="toc-tree"></div></div>
@@ -336,12 +339,14 @@ FILE: editor.html
         <button class="tbtn" id="codeBtn">&lt;&gt;</button>
         <button class="tbtn" id="linkBtnEditor">🔗</button>
         <button class="tbtn" id="imgBtn">🖼️</button>
+        <button class="tbtn" id="pageViewBtn">📄 페이지</button>
+        <button class="tbtn">🧩 캔버스</button>
         <input id="imgFile" type="file" accept="image/*" multiple style="display:none"/>
       </div>
     </div>
 
     <div id="editorArea" class="editor-area">
-      <div id="pageRoot" class="page-root"></div>
+      <div id="pageRoot" class="page-root editor-placeholder"></div>
     </div>
 
     <div class="editor-footer" style="border-top:1px solid var(--divider); height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#fff; position:sticky; bottom:0; z-index:2;">
@@ -424,584 +429,752 @@ FILE: editor.html
   </aside>
 
   <script>
-    /* ===== Polyfill & helpers ===== */
-    (function(){ if (typeof window.CSS === "undefined") window.CSS = {};
-      if (!window.CSS.escape){ window.CSS.escape = function(v){ if (arguments.length===0) throw new TypeError('CSS.escape needs arg'); var s=String(v), r='', i=-1, l=s.length, c, f=s.charCodeAt(0);
-        while(++i<l){ c=s.charCodeAt(i);
-          if(c===0){ r+="\uFFFD";continue;}
-          if((c>=1&&c<=31)||c===127||(i===0&&c>=48&&c<=57)||(i===1&&c>=48&&c<=57&&f===45)){ r+="\\"+c.toString(16)+" ";continue;}
-          if(i===0&&c===45&&l===1){ r+="\\"+s.charAt(i);continue;}
-          if(c>=128||c===45||c===95||(c>=48&&c<=57)||(c>=65&&c<=90)||(c>=97&&c<=122)){ r+=s.charAt(i);continue;}
-          r+="\\"+s.charAt(i);
-        } return r; }; }
+    /* ===== Polyfills ===== */
+    (function(){ // CSS.escape
+      if (typeof window.CSS === "undefined") window.CSS = {};
+      if (!window.CSS.escape){
+        window.CSS.escape = function(value){
+          if (arguments.length === 0) throw new TypeError('`CSS.escape` requires an argument.');
+          var string = String(value); var length = string.length; var index = -1; var codeUnit, result = ''; var firstCodeUnit = string.charCodeAt(0);
+          while (++index < length){
+            codeUnit = string.charCodeAt(index);
+            if (codeUnit === 0x0000){ result += "\uFFFD"; continue; }
+            if ((codeUnit >= 0x0001 && codeUnit <= 0x001F) || codeUnit === 0x007F || (index === 0 && codeUnit >= 0x0030 && codeUnit <= 0x0039) || (index === 1 && codeUnit >= 0x0030 && codeUnit <= 0x0039 && firstCodeUnit === 0x002D)){
+              result += "\\" + codeUnit.toString(16) + " "; continue;
+            }
+            if (index === 0 && codeUnit === 0x002D && length === 1){ result += "\\" + string.charAt(index); continue; }
+            if (codeUnit >= 0x0080 || codeUnit === 0x002D || codeUnit === 0x005F || (codeUnit >= 0x0030 && codeUnit <= 0x0039) || (codeUnit >= 0x0041 && codeUnit <= 0x005A) || (codeUnit >= 0x0061 && codeUnit <= 0x007A)){
+              result += string.charAt(index); continue;
+            }
+            result += "\\" + string.charAt(index);
+          }
+          return result;
+        };
+      }
     })();
-    const rIC = window.requestIdleCallback || ((cb)=>setTimeout(cb,1));
 
-    /* ===== LocalStorage keys & state ===== */
-    const LIST_KEY='fw_projects', DRAFT_KEY='fw_project_draft_v2', LAST_ID_KEY='fw_last_project_id', LAST_NODE_GLOBAL='fw_last_node_global';
+    const rIC = window.requestIdleCallback || function(cb){ return setTimeout(cb, 1); };
+
+    /* ===== Keys/State ===== */
+    const LIST_KEY    = 'fw_projects';
+    const DRAFT_KEY   = 'fw_project_draft_v2';
+    const LAST_ID_KEY = 'fw_last_project_id';
+    const LAST_NODE_GLOBAL = 'fw_last_node_global';
     function MEMO_KEY(pid){ return `fw_user_memos_${pid}`; }
     function docsKey(pid){ return `fw_docs_${pid}`; }
     function lastNodeKey(pid){ return `fw_last_node_${pid}`; }
     function tagKeyFor(pid, pathSub){ return `fw_editor_tags_${pid}::${pathSub}`; }
     function tocStateKey(pid){ return `fw_toc_state_${pid}`; }
 
-    let CURRENT_PROJECT=null, CURRENT_PID=null, CURRENT_NODE_PATH=null;
-    let SUSPEND_SAVE=0;
-    const PAGE={ enabled:true, pending:false };
+    let CURRENT_PROJECT = null;
+    let CURRENT_PID = null;
+    let CURRENT_NODE_PATH = null;
+    let SUSPEND_SAVE = 0;
+    const PAGE = { enabled: true, pendingReflow:false };
 
     /* ===== Utils ===== */
-    function safeParse(json, fb){ try{ const v=JSON.parse(json); return (v==null)?fb:v; }catch(_){ return fb; } }
-    function htmlToText(html){ const tmp=document.createElement('div'); tmp.innerHTML=html||''; return (tmp.textContent||'').trim(); }
+    function safeParse(json, fallback){
+      try{ const v = JSON.parse(json); return (v === null || v === undefined) ? fallback : v; }
+      catch(_){ return fallback; }
+    }
+    function htmlToText(html){ const tmp = document.createElement('div'); tmp.innerHTML = html || ''; return (tmp.textContent || '').trim(); }
     function escapeHTML(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function textToHTML(t){ return escapeHTML(t||'').replace(/\n/g,'<br/>'); }
-    function toastOnce(msg){ if(!window.toast) return alert(msg); window.toast(msg); }
+    function toastOnce(msg){ if (!window.toast) return alert(msg); window.toast(msg); }
     function getProjectList(){ return safeParse(localStorage.getItem(LIST_KEY), []); }
     function getDraft(){ return safeParse(localStorage.getItem(DRAFT_KEY), null); }
-    function getProjectById(pid){ const list=getProjectList(); return list.find(p=>p?.id===pid) || (getDraft()?.id===pid ? getDraft():null); }
-    function splitFullPath(full){ const i=full.indexOf('::'); if(i<0) return [CURRENT_PID, full]; return [full.slice(0,i), full.slice(i+2)]; }
+    function getProjectById(pid){
+      const list=getProjectList();
+      return list.find(p=>p?.id===pid) || (getDraft()?.id===pid ? getDraft() : null);
+    }
+    function splitFullPath(full){ const i = full.indexOf('::'); if (i<0) return [CURRENT_PID, full]; return [full.slice(0,i), full.slice(i+2)]; }
 
     /* ===== Sidebar ===== */
     function initSidebar(){
-      const sidebar=document.getElementById('sidebar');
-      document.getElementById('collapseToggle')?.addEventListener('click',()=> sidebar.setAttribute('data-collapsed','true'));
-      document.getElementById('brandToggleArea')?.addEventListener('click',()=>{ if(sidebar.getAttribute('data-collapsed')==='true') sidebar.setAttribute('data-collapsed','false'); });
+      const sidebar = document.getElementById('sidebar');
+      const collapseToggle = document.getElementById('collapseToggle');
+      const brandToggleArea = document.getElementById('brandToggleArea');
+      collapseToggle?.addEventListener('click', () => sidebar.setAttribute('data-collapsed', 'true'));
+      brandToggleArea?.addEventListener('click', () => { if (sidebar.getAttribute('data-collapsed') === 'true') sidebar.setAttribute('data-collapsed', 'false'); });
     }
 
     /* ===== TOC ===== */
-    const BMC_LABELS=[['cs','고객 세분화'],['cr','고객 관계'],['ch','채널'],['rs','수익 모델'],['vp','가치 제안'],['ka','핵심 활동'],['kr','핵심 자원'],['kp','핵심 파트너'],['cst','비용 구조']];
+    const BMC_LABELS = [
+      ['cs','고객 세분화'], ['cr','고객 관계'], ['ch','채널'],
+      ['rs','수익 모델'], ['vp','가치 제안'], ['ka','핵심 활동'],
+      ['kr','핵심 자원'], ['kp','핵심 파트너'], ['cst','비용 구조'],
+    ];
     function buildTocNodesForProject(p){
-      const pid=p.id, title=(p?.title||'무제 프로젝트').trim(), psst=p?.psst||{};
-      const trim=(s)=> (String(s||'').replace(/\s+/g,' ').trim()||'—').slice(0,50);
-      const root={pid, path:`${pid}::project`, type:'project', title:`${title}`, children:[]};
-      const grp={pid, path:`${pid}::psst`, type:'psstGroup', title:'PSST', children:[
-        {pid, path:`${pid}::psst/p`, type:'psstP', title:`P: ${trim(psst.p)}`, children:[]},
-        {pid, path:`${pid}::psst/s1`,type:'psstS', title:`S: ${trim(psst.s1 ?? psst.s)}`, children:[]},
-        {pid, path:`${pid}::psst/s2`,type:'psstS', title:`S: ${trim(psst.s2)}`, children:[]},
-        {pid, path:`${pid}::psst/t`, type:'psstT', title:`T: ${trim(psst.t)}`, children:[]},
-      ]};
-      root.children.push(grp);
-      root.children.push({pid, path:`${pid}::background`, type:'background', title:`배경`, children:[]});
+      const pid = p.id;
+      const title = (p?.title || '무제 프로젝트').trim();
+      const psst  = p?.psst || {};
+      const trim = (s)=> (String(s||'').replace(/\s+/g,' ').trim() || '—').slice(0,50);
+      const root = { pid, path:`${pid}::project`, type:'project', title:`${title}`, children:[] };
+      const psGroup = {
+        pid, path:`${pid}::psst`, type:'psstGroup', title:'PSST', isFolder:true, children:[
+          { pid, path:`${pid}::psst/p`,  type:'psstP', title:`P: ${trim(psst.p)}`,  children:[] },
+          { pid, path:`${pid}::psst/s1`, type:'psstS', title:`S: ${trim(psst.s1 ?? psst.s)}`, children:[] },
+          { pid, path:`${pid}::psst/s2`, type:'psstS', title:`S: ${trim(psst.s2)}`, children:[] },
+          { pid, path:`${pid}::psst/t`,  type:'psstT', title:`T: ${trim(psst.t)}`,  children:[] },
+        ]
+      };
+      root.children.push(psGroup);
+      root.children.push({ pid, path:`${pid}::background`, type:'background', title:`배경`, children:[] });
       return [root];
     }
-    function buildAllTocNodes(){ const nodes=[]; const list=getProjectList(); list.forEach(p=>nodes.push(...buildTocNodesForProject(p))); const d=getDraft(); if(d && !list.find(x=>x.id===d.id)) nodes.push(...buildTocNodesForProject(d)); return nodes; }
+    function buildAllTocNodes(){
+      const nodes = [];
+      const list = getProjectList();
+      list.forEach(p => nodes.push(...buildTocNodesForProject(p)));
+      const d = getDraft();
+      if (d && !list.find(x=>x.id===d.id)){ nodes.push(...buildTocNodesForProject(d)); }
+      return nodes;
+    }
     function renderTocTree(nodes){
-      const root=document.getElementById('tocRoot'); if(!root) return; root.innerHTML='';
-      function badgeText(t){ const m={project:'Project', psstGroup:'PSST', background:'BG', psstP:'P', psstS:'S', psstT:'T'}; return m[t]||t; }
+      const root = document.getElementById('tocRoot'); if(!root) return; root.innerHTML = '';
+      function badgeText(t){ const m = { project:'Project', psstGroup:'PSST', background:'BG', psstP:'P', psstS:'S', psstT:'T' }; return m[t] || t; }
       function buildItem(node){
-        const hasChild=!!(node.children&&node.children.length);
-        const state=safeParse(localStorage.getItem(tocStateKey(node.pid)),{});
-        const expanded=state[node.path]!==false;
+        const hasChildren = !!(node.children && node.children.length);
+        const isFolder = !!node.isFolder;
+        const state = safeParse(localStorage.getItem(tocStateKey(node.pid)), {});
+        const expanded = state[node.path] !== false;
 
-        const box=document.createElement('div');
-        box.className='node'; box.dataset.path=node.path; box.dataset.type=node.type; box.dataset.pid=node.pid;
-        if(CURRENT_NODE_PATH===node.path) box.classList.add('is-active');
+        const box = document.createElement('div');
+        box.className = 'node';
+        box.dataset.path = node.path;
+        box.dataset.type = node.type;
+        box.dataset.pid  = node.pid;
+        if (CURRENT_NODE_PATH === node.path) box.classList.add('is-active');
 
-        const caret=document.createElement('span'); caret.className='caret'; caret.textContent=hasChild?(expanded?'▾':'▸'):'·';
-        const badge=document.createElement('span'); badge.className='badge'; badge.textContent=badgeText(node.type);
-        const title=document.createElement('span'); title.className='title'; title.textContent=node.title||'(제목없음)';
-        box.appendChild(caret); box.appendChild(badge); box.appendChild(title);
+        const caretEl = document.createElement('span'); caretEl.className = 'caret'; caretEl.textContent = hasChildren ? (expanded ? '▾' : '▸') : '·';
+        const badgeEl = document.createElement('span'); badgeEl.className = 'badge'; badgeEl.textContent = badgeText(node.type);
+        const titleEl = document.createElement('span'); titleEl.className = 'title'; titleEl.textContent = node.title || '(제목없음)';
+        box.appendChild(caretEl); box.appendChild(badgeEl); box.appendChild(titleEl);
 
-        const wrap=document.createElement('div'); wrap.className='toc-item'+(expanded?'':' is-collapsed');
-        const li=document.createElement('div'); li.className='toc-li'; li.appendChild(box);
-        if(hasChild){
-          const cwrap=document.createElement('div'); cwrap.className='toc-children';
-          const ul=document.createElement('div'); ul.className='toc-ul';
-          node.children.forEach(ch=>ul.appendChild(buildItem(ch)));
-          cwrap.appendChild(ul); li.appendChild(cwrap);
+        const wrapEl = document.createElement('div'); wrapEl.className = 'toc-item' + (expanded?'':' is-collapsed');
+        const liEl = document.createElement('div'); liEl.className = 'toc-li'; liEl.appendChild(box);
+
+        if (hasChildren){
+          const childrenWrap = document.createElement('div'); childrenWrap.className = 'toc-children';
+          const ulEl = document.createElement('div'); ulEl.className = 'toc-ul';
+          node.children.forEach(ch => ulEl.appendChild(buildItem(ch)));
+          childrenWrap.appendChild(ulEl); liEl.appendChild(childrenWrap);
         }
-        wrap.appendChild(li);
+        wrapEl.appendChild(liEl);
 
-        box.addEventListener('click',(ev)=>{
-          const onCaret=(ev.offsetX<=22);
-          if(hasChild && onCaret){
-            const collapsed=li.classList.toggle('is-collapsed');
-            caret.textContent=collapsed?'▸':'▾';
-            const s=safeParse(localStorage.getItem(tocStateKey(node.pid)),{})||{};
-            s[node.path]=!collapsed; localStorage.setItem(tocStateKey(node.pid), JSON.stringify(s));
+        box.addEventListener('click', (ev)=>{
+          const clickOnCaret = (ev.offsetX <= 22);
+          if (hasChildren && (clickOnCaret || isFolder)){
+            const collapsed = liEl.classList.toggle('is-collapsed');
+            caretEl.textContent = collapsed ? '▸' : '▾';
+            const s = safeParse(localStorage.getItem(tocStateKey(node.pid)), {}) || {};
+            s[node.path] = !collapsed; localStorage.setItem(tocStateKey(node.pid), JSON.stringify(s));
           }else{
-            openNodeDocument(node.path,node.title,node.pid);
-            document.querySelectorAll('.node.is-active').forEach(n=>n.classList.remove('is-active'));
+            openNodeDocument(node.path, node.title, node.pid);
+            document.querySelectorAll('.node.is-active').forEach(n=> n.classList.remove('is-active'));
             box.classList.add('is-active');
           }
         });
-        return wrap;
+        return wrapEl;
       }
-      nodes.forEach(n=>root.appendChild(buildItem(n)));
+      nodes.forEach(n => root.appendChild(buildItem(n)));
     }
     function rerenderToc(){
       renderTocTree(buildAllTocNodes());
-      const active=document.querySelector(`.node[data-path="${CSS.escape(CURRENT_NODE_PATH||'')}"]`);
-      if(active){ document.querySelectorAll('.node.is-active').forEach(n=>n.classList.remove('is-active')); active.classList.add('is-active'); }
+      const active = document.querySelector(`.node[data-path="${CSS.escape(CURRENT_NODE_PATH||'')}"]`);
+      if (active){ document.querySelectorAll('.node.is-active').forEach(n=> n.classList.remove('is-active')); active.classList.add('is-active'); }
     }
 
-    /* ===== Docs save/load ===== */
-    function saveDocsMap(pid,map){ localStorage.setItem(docsKey(pid), JSON.stringify(map||{})); }
-    function loadDocsMap(pid){ return safeParse(localStorage.getItem(docsKey(pid)),{}); }
+    /* ===== Docs ===== */
+    function loadDocsMap(pid){ return safeParse(localStorage.getItem(docsKey(pid)), {}); }
+    function saveDocsMap(pid, map){ localStorage.setItem(docsKey(pid), JSON.stringify(map||{})); }
     function persistProject(){
       try{
-        if(!CURRENT_PID||!CURRENT_PROJECT) return;
-        const d=getDraft(); if(d && d.id===CURRENT_PID){ localStorage.setItem(DRAFT_KEY, JSON.stringify({...d,...CURRENT_PROJECT, savedAt:new Date().toISOString()})); }
-        const list=getProjectList(); const idx=list.findIndex(x=>x&&x.id===CURRENT_PID);
-        if(idx>=0){ list[idx]={...list[idx],...CURRENT_PROJECT, savedAt:new Date().toISOString()}; localStorage.setItem(LIST_KEY, JSON.stringify(list)); }
+        if (!CURRENT_PID || !CURRENT_PROJECT) return;
+        const d = getDraft();
+        if (d && d.id === CURRENT_PID){
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...d, ...CURRENT_PROJECT, savedAt:new Date().toISOString() }));
+        }
+        const list = getProjectList();
+        const idx = list.findIndex(x=> x && x.id === CURRENT_PID);
+        if (idx>=0){
+          list[idx] = { ...list[idx], ...CURRENT_PROJECT, savedAt:new Date().toISOString() };
+          localStorage.setItem(LIST_KEY, JSON.stringify(list));
+        }
         localStorage.setItem(LAST_ID_KEY, CURRENT_PID);
       }catch(e){ console.error(e); }
     }
 
     /* ===== Editor refs ===== */
-    const editor={ pageRoot:null, title:null, saveBtn:null, tagRow:null, addTagBtn:null };
+    const editor = { pageRoot:null, title:null, saveBtn:null, tagRow:null, addTagBtn:null };
 
-    function defaultDocHtml(t){ const h=(s)=> (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<h2>${h(t||'')}</h2>\n<p></p>`; }
-    function psstInitialHtmlFor(sub, project){ const key=sub.split('/')[1]; const label={p:'Problem', s1:'Solution', s2:'Strategy', t:'Timeline'}[key]||'PSST'; const val=(project?.psst?.[key]||'').trim(); return `<h2>${label}</h2>\n<p>${textToHTML(val)}</p>`; }
-
-    function createPageOuter(html=''){
-      const outer=document.createElement('div'); outer.className='page-outer';
-      const sec=document.createElement('section'); sec.className='page'; sec.setAttribute('contenteditable','true');
-      if(html) sec.innerHTML=html;
-      outer.appendChild(sec);
-      return outer;
+    function defaultDocHtml(title){
+      const h = (t)=> (t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<section class="page" contenteditable="true"><h2>${h(title||'')}</h2>\n<p></p></section>`;
     }
-
+    function psstInitialHtmlFor(subpath, project){
+      const key = subpath.split('/')[1];
+      const label = {p:'Problem', s1:'Solution', s2:'Strategy', t:'Timeline'}[key] || 'PSST';
+      const val = (project?.psst?.[key] || '').trim();
+      return `<section class="page" contenteditable="true"><h2>${label}</h2>\n<p>${textToHTML(val)}</p></section>`;
+    }
     function ensureAtLeastOnePage(){
-      const root=editor.pageRoot; if(!root) return;
-      if(!root.querySelector('.page')){ root.appendChild(createPageOuter('')); }
+      const root = editor.pageRoot;
+      if (!root) return;
+      if (!root.querySelector('.page')){
+        const sec = document.createElement('section');
+        sec.className = 'page';
+        sec.setAttribute('contenteditable','true');
+        root.appendChild(sec);
+      }
+      root.dataset.pageView = PAGE.enabled ? 'true' : 'false';
+      root.classList.remove('editor-placeholder');
+      if (root.querySelectorAll('.page').length === 1 && root.querySelector('.page').innerHTML.trim()===''){
+        root.classList.add('editor-placeholder');
+      }
     }
 
     function openNodeDocument(fullPath, displayTitle, pidFromNode){
-      const [pid, sub]=splitFullPath(fullPath);
-      const targetPid=pidFromNode||pid;
-      const proj=getProjectById(targetPid);
-      if(!proj){ toastOnce('프로젝트를 찾을 수 없습니다.'); return; }
-      CURRENT_PROJECT=proj; CURRENT_PID=targetPid;
+      const [pid, sub] = splitFullPath(fullPath);
+      const targetPid = pidFromNode || pid;
 
-      CURRENT_NODE_PATH=`${CURRENT_PID}::${sub}`;
+      // 폴더 가드: 'psst'는 폴더이므로 열지 않음
+      if (sub === 'psst'){ return; }
+
+      const proj = getProjectById(targetPid);
+      if (!proj){ toastOnce('프로젝트를 찾을 수 없습니다.'); return; }
+      CURRENT_PROJECT = proj; CURRENT_PID = targetPid;
+
+      CURRENT_NODE_PATH = `${CURRENT_PID}::${sub}`;
       localStorage.setItem(LAST_ID_KEY, CURRENT_PID);
       localStorage.setItem(LAST_NODE_GLOBAL, CURRENT_NODE_PATH);
       localStorage.setItem(lastNodeKey(CURRENT_PID), CURRENT_NODE_PATH);
 
-      const map=loadDocsMap(CURRENT_PID);
-      if(!map[sub]){
-        const isPS=sub.startsWith('psst/');
-        const content=isPS? psstInitialHtmlFor(sub, CURRENT_PROJECT) : defaultDocHtml(displayTitle||sub);
-        const html=`<div class="page-outer"><section class="page" contenteditable="true">${content}</section></div>`;
-        map[sub]={ title:displayTitle||sub, html, type: sub.split('/')[0], updatedAt:new Date().toISOString() };
+      const map = loadDocsMap(CURRENT_PID);
+      if (!map[sub]){
+        const isPS = sub.startsWith('psst/');
+        const content = isPS ? psstInitialHtmlFor(sub, CURRENT_PROJECT) : defaultDocHtml(displayTitle || sub);
+        map[sub] = { title: displayTitle || sub, html: content, type: sub.split('/')[0], updatedAt: new Date().toISOString() };
         saveDocsMap(CURRENT_PID, map);
         toastOnce('새 문서를 생성했습니다');
       }
 
-      const doc=map[sub];
-      editor.title.value=doc.title||'';
-      // 보정: 이전 문서가 .page-outer 없이 저장된 경우 래핑
-      const needWrap = !/<div[^>]+class=["'][^"']*page-outer[^"']*["']/.test(doc.html||'');
-      editor.pageRoot.innerHTML = needWrap ? `<div class="page-outer"><section class="page" contenteditable="true">${doc.html||''}</section></div>` : (doc.html||'');
-
+      const doc = map[sub];
+      editor.title.value = doc.title || '';
+      editor.pageRoot.innerHTML = doc.html || '';
       ensureAtLeastOnePage();
       updatePageDividers();
-      fitPagesToWidth();
 
       renderTagsFor(CURRENT_PID, sub);
       renderBmcCards();
       renderUserMemos();
       rerenderToc();
-      if(PAGE.enabled) reflowPagesDeferred();
+      if (PAGE.enabled) reflowPagesDeferred();
     }
 
     function saveCurrentDoc(){
-      if(SUSPEND_SAVE>0) return;
-      if(!CURRENT_NODE_PATH||!CURRENT_PID) return;
-      const [,sub]=splitFullPath(CURRENT_NODE_PATH);
-      const map=loadDocsMap(CURRENT_PID);
-      const doc=map[sub]||{ title:'', html:'', type: sub.split('/')[0] };
-      doc.title=editor.title.value||'';
-      doc.html=editor.pageRoot.innerHTML||'';
-      doc.updatedAt=new Date().toISOString();
-      map[sub]=doc; saveDocsMap(CURRENT_PID,map);
+      if (SUSPEND_SAVE>0) return;
+      if (!CURRENT_NODE_PATH || !CURRENT_PID) return;
+      const [, sub] = splitFullPath(CURRENT_NODE_PATH);
+      const map = loadDocsMap(CURRENT_PID);
+      const doc = map[sub] || { title:'', html:'', type: sub.split('/')[0] };
+      doc.title = editor.title.value || '';
+      doc.html  = editor.pageRoot.innerHTML || '';
+      doc.updatedAt = new Date().toISOString();
+      map[sub] = doc;
+      saveDocsMap(CURRENT_PID, map);
 
-      if(sub.startsWith('psst/')){
-        const k=sub.split('/')[1];
-        const first=editor.pageRoot.querySelector('.page');
-        const text=htmlToText(first? first.innerHTML:doc.html);
-        if(!CURRENT_PROJECT.psst) CURRENT_PROJECT.psst={};
-        CURRENT_PROJECT.psst[k]=text; persistProject(); rerenderToc();
+      if (sub.startsWith('psst/')){
+        const k = sub.split('/')[1];
+        const firstPage = editor.pageRoot.querySelector('.page');
+        const text = htmlToText(firstPage ? firstPage.innerHTML : doc.html);
+        if (!CURRENT_PROJECT.psst) CURRENT_PROJECT.psst = {};
+        CURRENT_PROJECT.psst[k] = text;
+        persistProject();
+        rerenderToc();
       }
 
-      if(editor.saveBtn){
-        const old=editor.saveBtn.textContent; editor.saveBtn.textContent='저장됨';
-        setTimeout(()=> editor.saveBtn.textContent=old||'저장', 700);
+      if (editor.saveBtn){
+        const old = editor.saveBtn.textContent;
+        editor.saveBtn.textContent = '저장됨';
+        setTimeout(()=> editor.saveBtn.textContent = old || '저장', 700);
       }
     }
-    const autosave=(()=>{ let t=null; return ()=>{ if(SUSPEND_SAVE>0) return; clearTimeout(t); t=setTimeout(saveCurrentDoc, 300); }; })();
+    const autosave = (()=>{ let t=null; return ()=>{ if (SUSPEND_SAVE>0) return; clearTimeout(t); t=setTimeout(saveCurrentDoc, 400); }; })();
 
     /* ===== 태그 ===== */
-    function renderTagsFor(pid, sub){
-      const row=editor.tagRow, add=editor.addTagBtn;
-      Array.from(row.querySelectorAll('.tag-pill')).forEach(n=>n.remove());
-      const TAGS=safeParse(localStorage.getItem(tagKeyFor(pid, sub)),[]);
-      TAGS.forEach((t,i)=>{
-        const b=document.createElement('button'); b.className='tag-pill'; b.textContent=t;
-        b.addEventListener('click',()=> b.classList.toggle('active'));
-        b.addEventListener('dblclick',()=>{ const a=safeParse(localStorage.getItem(tagKeyFor(pid, sub)),[]); a.splice(i,1); localStorage.setItem(tagKeyFor(pid, sub), JSON.stringify(a)); renderTagsFor(pid, sub); });
-        row.insertBefore(b, add);
+    function renderTagsFor(pid, subpath){
+      const tagRow = editor.tagRow;
+      const addBtn = editor.addTagBtn;
+      Array.from(tagRow.querySelectorAll('.tag-pill')).forEach(n=> n.remove());
+      const TAGS = safeParse(localStorage.getItem(tagKeyFor(pid, subpath)), []);
+      TAGS.forEach((t, i)=>{
+        const b = document.createElement('button');
+        b.className='tag-pill'; b.textContent = t;
+        b.addEventListener('click', ()=> b.classList.toggle('active'));
+        b.addEventListener('dblclick', ()=>{
+          const arr = safeParse(localStorage.getItem(tagKeyFor(pid, subpath)), []);
+          arr.splice(i,1);
+          localStorage.setItem(tagKeyFor(pid, subpath), JSON.stringify(arr));
+          renderTagsFor(pid, subpath);
+        });
+        tagRow.insertBefore(b, addBtn);
       });
     }
 
-    /* ===== Right tabs/chat/memo (원형 유지) ===== */
+    /* ===== Right tabs/chat/memo ===== (원형 유지) */
     function initTabs(){
-      const map=[['tab-chat','panel-chat'],['tab-memo','panel-memo'],['tab-reco','panel-reco']];
-      function act(id){ map.forEach(([b,p])=>{ const btn=document.getElementById(b), pan=document.getElementById(p), on=(b===id); btn&&btn.setAttribute('aria-selected', on?'true':'false'); pan&&pan.setAttribute('data-active', on?'true':'false'); }); }
-      map.forEach(([b])=> document.getElementById(b)?.addEventListener('click',()=>act(b)));
-      act('tab-chat');
+      const map = [['tab-chat','panel-chat'],['tab-memo','panel-memo'],['tab-reco','panel-reco'],];
+      function activate(id){
+        map.forEach(([b,p])=>{
+          const btn = document.getElementById(b);
+          const pan = document.getElementById(p);
+          const on = (b===id);
+          btn && btn.setAttribute('aria-selected', on?'true':'false');
+          pan && pan.setAttribute('data-active', on?'true':'false');
+        });
+      }
+      map.forEach(([b])=>{ const btn = document.getElementById(b); btn && btn.addEventListener('click', ()=>activate(b)); });
+      activate('tab-chat');
     }
-    function loadUserMemos(){ return safeParse(localStorage.getItem(MEMO_KEY(CURRENT_PID)),[]); }
+    function loadUserMemos(){ return safeParse(localStorage.getItem(MEMO_KEY(CURRENT_PID)), []); }
     function saveUserMemos(list){ localStorage.setItem(MEMO_KEY(CURRENT_PID), JSON.stringify(list||[])); }
-    function autoGrow(ta){ if(!ta) return; const minPx=parseInt(getComputedStyle(ta).minHeight,10)||66; ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight, minPx)+'px'; }
+    function autoGrow(ta){ if (!ta) return; const minPx = parseInt(getComputedStyle(ta).minHeight, 10) || 66; ta.style.height = 'auto'; ta.style.height = Math.max(ta.scrollHeight, minPx) + 'px'; }
     function renderBmcCards(){
-      const wrap=document.getElementById('bmcGrid'); if(!wrap) return; wrap.innerHTML='';
-      const bmc=CURRENT_PROJECT?.bmc||{};
-      BMC_LABELS.forEach(([k,label])=>{
-        const card=document.createElement('div'); card.className='bmc-card';
-        const title=document.createElement('div'); title.className='bmc-title'; title.textContent=label;
-        const ro=document.createElement('div'); ro.className='bmc-ro';
-        const val=(bmc?.[k]||'').trim(); ro.innerHTML= val ? textToHTML(val) : '<span class="bmc-empty">—</span>';
+      const wrap = document.getElementById('bmcGrid'); if(!wrap) return;
+      wrap.innerHTML = '';
+      const bmc = CURRENT_PROJECT?.bmc || {};
+      BMC_LABELS.forEach(([k, label])=>{
+        const card = document.createElement('div'); card.className = 'bmc-card';
+        const title = document.createElement('div'); title.className = 'bmc-title'; title.textContent = label;
+        const ro = document.createElement('div'); ro.className = 'bmc-ro';
+        const val = (bmc?.[k] || '').trim();
+        ro.innerHTML = val ? textToHTML(val) : '<span class="bmc-empty">—</span>';
         card.appendChild(title); card.appendChild(ro); wrap.appendChild(card);
       });
     }
     function renderUserMemos(focusLast=false){
-      const listEl=document.getElementById('userMemoList'); if(!listEl) return; listEl.innerHTML=''; const memos=loadUserMemos();
-      memos.forEach((m,idx)=>{
-        const card=document.createElement('div'); card.className='memo-card';
-        const del=document.createElement('button'); del.className='memo-del'; del.textContent='삭제';
-        del.addEventListener('click',()=>{ const cur=loadUserMemos(); cur.splice(idx,1); saveUserMemos(cur); renderUserMemos(); });
-        const ta=document.createElement('textarea'); ta.className='memo-input'; ta.value=m.text||'';
-        ta.addEventListener('input',()=>{ const cur=loadUserMemos(); cur[idx]={...cur[idx], text:ta.value, updatedAt:Date.now()}; saveUserMemos(cur); autoGrow(ta); });
+      const listEl = document.getElementById('userMemoList'); if(!listEl) return;
+      listEl.innerHTML = '';
+      const memos = loadUserMemos();
+      memos.forEach((m, idx)=>{
+        const card = document.createElement('div'); card.className = 'memo-card';
+        const del = document.createElement('button'); del.className='memo-del'; del.textContent='삭제';
+        del.addEventListener('click', ()=>{ const cur = loadUserMemos(); cur.splice(idx,1); saveUserMemos(cur); renderUserMemos(); });
+        const ta = document.createElement('textarea'); ta.className='memo-input'; ta.value = m.text || '';
+        ta.addEventListener('input', ()=>{ const cur = loadUserMemos(); cur[idx] = { ...cur[idx], text: ta.value, updatedAt: Date.now() }; saveUserMemos(cur); autoGrow(ta); });
         requestAnimationFrame(()=> autoGrow(ta));
         card.appendChild(del); card.appendChild(ta); listEl.appendChild(card);
-        if(focusLast && idx===memos.length-1){ setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); },0); }
+        if (focusLast && idx===memos.length-1){ setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0); }
       });
     }
-    function addUserMemo(){ const memos=loadUserMemos(); memos.push({id:Date.now(), text:'', updatedAt:Date.now()}); saveUserMemos(memos); renderUserMemos(true); }
+    function addUserMemo(){ const memos = loadUserMemos(); memos.push({ id: Date.now(), text:'', updatedAt: Date.now() }); saveUserMemos(memos); renderUserMemos(true); }
 
     function initChat(){
-      const CHAT_KEY='fw_editor_chat_log', CHAT_MAX=1000, CHAT_RENDER_WINDOW=120, TRIM_AT_LOAD=2000;
-      const log=document.getElementById('chatLog'), input=document.getElementById('chatInput'), send=document.getElementById('chatSend');
-      const btnOlder=document.getElementById('chatLoadOlder'), btnExport=document.getElementById('chatExport'), btnClear=document.getElementById('chatClear'), stats=document.getElementById('chatStats');
-      let all=[], startIdx=0;
-      function loadChat(){ let arr=[]; try{ arr=JSON.parse(localStorage.getItem(CHAT_KEY)||'[]'); }catch(e){ arr=[]; } if(arr.length>TRIM_AT_LOAD){ arr=arr.slice(-CHAT_MAX); localStorage.setItem(CHAT_KEY, JSON.stringify(arr)); } return arr; }
-      function saveChat(list){ if(list.length>CHAT_MAX) list=list.slice(-CHAT_MAX); localStorage.setItem(CHAT_KEY, JSON.stringify(list)); return list; }
-      function bubble(m){ const d=document.createElement('div'); d.className='bubble '+(m.role==='me'?'me':'bot'); d.textContent=m.text; return d; }
-      function updateStats(){ const end=Math.min(all.length, startIdx+CHAT_RENDER_WINDOW); stats.textContent=`${all.length?(startIdx+1):0} - ${end} / ${all.length}`; }
-      function render(reset=false){ log.innerHTML=''; const frag=document.createDocumentFragment(); const end=Math.min(all.length, startIdx+CHAT_RENDER_WINDOW); for(let i=startIdx;i<end;i++) frag.appendChild(bubble(all[i])); log.appendChild(frag); updateStats(); if(reset){ log.scrollTop=log.scrollHeight+9999; } }
-      function tail(){ startIdx=Math.max(0, all.length-CHAT_RENDER_WINDOW); render(true); }
-      function push(role, text){ all.push({role,text,ts:Date.now()}); all=saveChat(all); tail(); }
+      const CHAT_KEY = 'fw_editor_chat_log';
+      const CHAT_MAX = 1000;
+      const CHAT_RENDER_WINDOW = 120;
+      const TRIM_AT_LOAD = 2000;
 
-      all=loadChat(); if(all.length===0){ all=[{role:'bot', text:'안녕하세요! 노트 작성을 도와드리는 AI 어시스턴트입니다.', ts:Date.now()}]; all=saveChat(all); } tail();
-      function sendNow(){ const v=input.value.trim(); if(!v) return; push('me', v); input.value=''; setTimeout(()=> push('bot','기록했어요.'),120); }
-      send&&(send.onclick=sendNow); input&&input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); } });
-      btnOlder&&btnOlder.addEventListener('click',()=>{ if(startIdx===0) return; startIdx=Math.max(0, startIdx-CHAT_RENDER_WINDOW); render(false); });
-      btnExport&&btnExport.addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); const d=new Date(); const fn=`chat-export-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; a.href=url; a.download=fn; a.click(); URL.revokeObjectURL(url); });
-      btnClear&&btnClear.addEventListener('click',()=>{ if(!confirm('챗봇 대화를 모두 비우시겠습니까? 내보내기로 백업할 수 있습니다.')) return; all=[{role:'bot', text:'대화가 초기화되었습니다.', ts:Date.now()}]; localStorage.setItem(CHAT_KEY, JSON.stringify(all)); tail(); });
-    }
+      const log = document.getElementById('chatLog');
+      const input = document.getElementById('chatInput');
+      const send = document.getElementById('chatSend');
+      const btnOlder = document.getElementById('chatLoadOlder');
+      const btnExport = document.getElementById('chatExport');
+      const btnClear = document.getElementById('chatClear');
+      const stats = document.getElementById('chatStats');
 
-    /* ===== Toolbar & media insert ===== */
-    function caretSafeInsert(node){
-      const sel=window.getSelection();
-      if(!sel||sel.rangeCount===0){
-        const first=editor.pageRoot.querySelector('.page')||editor.pageRoot;
-        first.appendChild(node); return;
+      let all = [], startIdx = 0;
+
+      function loadChat(){
+        let arr = []; try{ arr = JSON.parse(localStorage.getItem(CHAT_KEY) || '[]'); }catch(e){ arr = []; }
+        if (arr.length > TRIM_AT_LOAD){ arr = arr.slice(-CHAT_MAX); localStorage.setItem(CHAT_KEY, JSON.stringify(arr)); }
+        return arr;
       }
-      const range=sel.getRangeAt(0); range.collapse(false); range.insertNode(node);
-      const r2=document.createRange(); r2.setStartAfter(node); r2.setEndAfter(node); sel.removeAllRanges(); sel.addRange(r2);
+      function saveChat(list){ if (list.length > CHAT_MAX) list = list.slice(-CHAT_MAX); localStorage.setItem(CHAT_KEY, JSON.stringify(list)); return list; }
+      function bubbleEl(m){ const d = document.createElement('div'); d.className = 'bubble ' + (m.role==='me' ? 'me' : 'bot'); d.textContent = m.text; return d; }
+      function updateStats(){ const end = Math.min(all.length, startIdx + CHAT_RENDER_WINDOW); stats.textContent = `${all.length ? (startIdx+1) : 0} - ${end} / ${all.length}`; }
+      function renderWindow(reset=false){
+        log.innerHTML = ''; const frag = document.createDocumentFragment(); const end = Math.min(all.length, startIdx + CHAT_RENDER_WINDOW);
+        for (let i=startIdx; i<end; i++){ frag.appendChild(bubbleEl(all[i])); }
+        log.appendChild(frag); updateStats(); if (reset){ log.scrollTop = log.scrollHeight + 9999; }
+      }
+      function ensureTail(){ startIdx = Math.max(0, all.length - CHAT_RENDER_WINDOW); renderWindow(true); }
+      function push(role, text){ all.push({role, text, ts: Date.now()}); all = saveChat(all); ensureTail(); }
+
+      all = loadChat();
+      if (all.length === 0){ all = [{role:'bot', text:'안녕하세요! 노트 작성을 도와드리는 AI 어시스턴트입니다.', ts: Date.now()}]; all = saveChat(all); }
+      ensureTail();
+
+      function sendNow(){ const v = input.value.trim(); if(!v) return; push('me', v); input.value=''; setTimeout(()=> push('bot','기록했어요.'), 120); }
+      send && (send.onclick = sendNow);
+      input && input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); } });
+
+      btnOlder && btnOlder.addEventListener('click', ()=>{ if (startIdx === 0) return; startIdx = Math.max(0, startIdx - CHAT_RENDER_WINDOW); renderWindow(false); });
+      btnExport && btnExport.addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify(all, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); const d = new Date(); const fn = `chat-export-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; a.href = url; a.download = fn; a.click(); URL.revokeObjectURL(url); });
+      btnClear && btnClear.addEventListener('click', ()=>{ if (!confirm('챗봇 대화를 모두 비우시겠습니까? 내보내기로 백업할 수 있습니다.')) return; all = [{role:'bot', text:'대화가 초기화되었습니다.', ts: Date.now()}]; localStorage.setItem(CHAT_KEY, JSON.stringify(all)); ensureTail(); });
     }
-    function fileToDataURL(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(file); }); }
+
+    /* ===== Toolbar ===== */
+    function initToolbar(){
+      const root = editor.pageRoot;
+      document.querySelectorAll('.tbtn[data-cmd]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.execCommand(btn.dataset.cmd, false, null);
+          root && root.focus(); autosave(); if (PAGE.enabled) reflowPagesDeferred();
+        });
+      });
+      document.getElementById('linkBtnEditor')?.addEventListener('click', ()=>{ const url = prompt('링크 URL을 입력하세요'); if(!url) return; document.execCommand('createLink', false, url); root.focus(); autosave(); if (PAGE.enabled) reflowPagesDeferred(); });
+      const imgFile = document.getElementById('imgFile');
+      document.getElementById('imgBtn')?.addEventListener('click', ()=>{ imgFile && imgFile.click(); });
+      imgFile?.addEventListener('change', async (e)=>{
+        if (!e.target.files || !e.target.files.length) return;
+        await insertImageFiles(e.target.files);
+        e.target.value = '';
+      });
+      document.getElementById('codeBtn')?.addEventListener('click', ()=>{ const sel = window.getSelection(); if (!sel || sel.rangeCount===0) return; const range = sel.getRangeAt(0); const span = document.createElement('code'); span.textContent = sel.toString(); range.deleteContents(); range.insertNode(span); sel.removeAllRanges(); autosave(); if (PAGE.enabled) reflowPagesDeferred(); });
+      document.getElementById('pageViewBtn')?.addEventListener('click', ()=>{
+        PAGE.enabled = !PAGE.enabled;
+        editor.pageRoot.dataset.pageView = PAGE.enabled ? 'true' : 'false';
+        updatePageDividers();
+        if (PAGE.enabled){ reflowPagesDeferred(); }
+      });
+      document.getElementById('attachBtn')?.addEventListener('click', ()=> imgFile && imgFile.click());
+    }
+
+    /* ===== 이미지 업로드/드롭/붙여넣기 ===== */
+    function caretSafeInsert(node){
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount===0){
+        const first = editor.pageRoot.querySelector('.page') || editor.pageRoot;
+        first.appendChild(node);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      range.collapse(false);
+      range.insertNode(node);
+      const r2 = document.createRange();
+      r2.setStartAfter(node); r2.setEndAfter(node);
+      sel.removeAllRanges(); sel.addRange(r2);
+    }
+    function fileToDataURL(file){ return new Promise(resolve => { const fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.readAsDataURL(file); }); }
     async function insertImageFiles(fileList){
-      const files=Array.from(fileList).filter(f=>/^image\//i.test(f.type)); if(!files.length) return;
+      const files = Array.from(fileList).filter(f => /^image\//i.test(f.type));
+      if (!files.length) return;
       SUSPEND_SAVE++;
-      for(const f of files){
-        const dataURL=await fileToDataURL(f);
-        const img=document.createElement('img'); img.src=dataURL; img.alt=f.name||'image'; img.style.maxWidth='100%'; img.style.height='auto';
-        img.onload=()=>{ if(PAGE.enabled) reflowPagesDeferred(); };
+      for (const f of files){
+        const dataURL = await fileToDataURL(f);
+        const img = document.createElement('img');
+        img.src = dataURL; img.alt = f.name || 'image';
+        img.style.maxWidth = '100%'; img.style.height = 'auto';
+        img.onload = ()=>{ if (PAGE.enabled) reflowPagesDeferred(); };
         caretSafeInsert(img);
       }
-      SUSPEND_SAVE--; autosave(); if(PAGE.enabled) reflowPagesDeferred();
+      SUSPEND_SAVE--;
+      autosave();
+      if (PAGE.enabled) reflowPagesDeferred();
     }
-    function initToolbar(){
-      const root=editor.pageRoot;
-      document.querySelectorAll('.tbtn[data-cmd]').forEach(btn=>{
-        btn.addEventListener('click',()=>{ document.execCommand(btn.dataset.cmd,false,null); root&&root.focus(); autosave(); if(PAGE.enabled) reflowPagesDeferred(); });
+    function initDragAndDrop(){
+      const area = document.getElementById('editorArea');
+      area.addEventListener('dragover', (e)=>{
+        if (e.dataTransfer && [...(e.dataTransfer.items||[])].some(it=>it.kind==='file')){ e.preventDefault(); }
       });
-      document.getElementById('linkBtnEditor')?.addEventListener('click',()=>{ const url=prompt('링크 URL을 입력하세요'); if(!url) return; document.execCommand('createLink',false,url); root.focus(); autosave(); if(PAGE.enabled) reflowPagesDeferred(); });
-      const imgFile=document.getElementById('imgFile');
-      document.getElementById('imgBtn')?.addEventListener('click',()=> imgFile&&imgFile.click());
-      document.getElementById('attachBtn')?.addEventListener('click',()=> imgFile&&imgFile.click());
-      imgFile?.addEventListener('change', async(e)=>{ if(!e.target.files||!e.target.files.length) return; await insertImageFiles(e.target.files); e.target.value=''; });
+      area.addEventListener('drop', async (e)=>{
+        if (!e.dataTransfer) return;
+        const files = e.dataTransfer.files;
+        if (files && files.length){ e.preventDefault(); await insertImageFiles(files); }
+      });
     }
 
-    function initDragAndPaste(){
-      const area=document.getElementById('editorArea');
-      area.addEventListener('dragover',(e)=>{ if(e.dataTransfer && [...(e.dataTransfer.items||[])].some(it=>it.kind==='file')){ e.preventDefault(); }});
-      area.addEventListener('drop', async(e)=>{ if(!e.dataTransfer) return; const files=e.dataTransfer.files; if(files&&files.length){ e.preventDefault(); await insertImageFiles(files); }});
+    /* ===== 리치 붙여넣기(캡처단계) ===== */
+    function initRichPaste(){
+      const root = editor.pageRoot;
+      if (!root) return;
 
-      editor.pageRoot.addEventListener('paste', async(e)=>{
-        const cd=e.clipboardData||window.clipboardData; if(!cd) return;
-        const types=cd.types?Array.from(cd.types):[];
-        const hasHTML=types.includes('text/html');
-        const hasImg=cd.items? Array.from(cd.items).some(it=>it.type && it.type.indexOf('image/')===0):false;
-        if(hasHTML||hasImg){
-          e.preventDefault(); SUSPEND_SAVE++;
-          if(hasHTML){
-            let html=cd.getData('text/html')||'';
-            html=extractBody(html); html=cleanPastedHTML(html); html=removeOfficeImagePlaceholders(html);
+      root.addEventListener('paste', async (e) => {
+        const cd = e.clipboardData || window.clipboardData; if (!cd) return;
+        const types = cd.types ? Array.from(cd.types) : [];
+        const hasHTML = types.includes('text/html');
+        const hasImages = (cd.items ? Array.from(cd.items).some(it => it.type && it.type.indexOf('image/')===0) : false);
+
+        if (hasHTML || hasImages){
+          e.preventDefault();
+          SUSPEND_SAVE++;
+
+          let html = hasHTML ? (cd.getData('text/html') || '') : '';
+          if (html){
+            html = extractBody(html);
+            html = cleanPastedHTML(html);
+            if (/(그림입니다\.|원본 그림의 이름|This is a picture\.)/i.test(html)){ html = removeOfficeImagePlaceholders(html); }
             insertHTMLAtCaret(html);
           }
-          if(hasImg){ await insertImagesFromClipboardItems(cd.items); }
-          SUSPEND_SAVE--; autosave(); if(PAGE.enabled) reflowPagesDeferred();
+
+          if (hasImages){ await insertImagesFromClipboardItems(cd.items); }
+
+          SUSPEND_SAVE--;
+          autosave();
+          if (PAGE.enabled) reflowPagesDeferred();
         }
-      }, true);
+      }, true); // 캡처단계
     }
-    function extractBody(html){ const m=/<body[^>]*>([\s\S]*?)<\/body>/i.exec(html); return m?m[1]:html; }
+    async function insertImagesFromClipboardItems(items){
+      const imgs = Array.from(items).filter(it => it.type && it.type.indexOf('image/')===0);
+      for (const it of imgs){
+        const file = it.getAsFile && it.getAsFile(); if (!file) continue;
+        await insertImageFiles([file]);
+      }
+    }
+    function extractBody(html){ const m = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html); return m ? m[1] : html; }
     function cleanPastedHTML(html){
-      html=html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi,'');
-      html=html.replace(/<(script|style|title|meta|link|xml|iframe|object|embed|noscript)[\s\S]*?>[\s\S]*?<\/\1>/gi,'');
-      html=html.replace(/<(v:|o:|w:)[^>]+>/gi,''); html=html.replace(/<\/(v:|o:|w:)[^>]+>/gi,'');
-      html=html.replace(/\s(on\w+)=(".*?"|'.*?'|[^\s>]+)/gi,'');
-      html=html.replace(/<img([^>]+)src\s*=\s*"(file:[^"]+)"([^>]*)>/gi,'');
+      html = html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, '');
+      html = html.replace(/<(script|style|title|meta|link|xml|iframe|object|embed|noscript)[\s\S]*?>[\s\S]*?<\/\1>/gi, '');
+      html = html.replace(/<(script|style|title|meta|link|xml|iframe|object|embed|noscript)[^>]*?>/gi, '');
+      html = html.replace(/<\/?o:p[^>]*>/gi, '');
+      html = html.replace(/\s(on\w+)=(".*?"|'.*?'|[^\s>]+)/gi, '');
+      html = html.replace(/<(v:|o:|w:)[^>]+>/gi, '');
+      html = html.replace(/<\/(v:|o:|w:)[^>]+>/gi, '');
+      html = html.replace(/<img([^>]+)src\s*=\s*"(file:[^"]+)"([^>]*)>/gi, '');
       return html;
     }
     function removeOfficeImagePlaceholders(html){
-      return html.replace(/<p[^>]*>(\s|&nbsp;)*(그림입니다\.|원본 그림의 이름|원본 그림의 크기|This is a picture\.)[\s\S]*?<\/p>/gi,'');
-    }
-    async function insertImagesFromClipboardItems(items){
-      const imgs=Array.from(items).filter(it=>it.type && it.type.indexOf('image/')===0);
-      for(const it of imgs){ const file=it.getAsFile && it.getAsFile(); if(file) await insertImageFiles([file]); }
+      return html.replace(/<p[^>]*>(\s|&nbsp;)*(그림입니다\.|원본 그림의 이름|원본 그림의 크기|This is a picture\.)[\s\S]*?<\/p>/gi, '');
     }
     function insertHTMLAtCaret(html){
-      const sel=window.getSelection(); if(!sel||sel.rangeCount===0){ document.execCommand('insertHTML',false,html); return; }
-      const range=sel.getRangeAt(0); range.deleteContents();
-      const tmp=document.createElement('div'); tmp.innerHTML=html;
-      const frag=document.createDocumentFragment(); while(tmp.firstChild) frag.appendChild(tmp.firstChild);
-      range.insertNode(frag); sel.removeAllRanges();
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0){ document.execCommand('insertHTML', false, html); return; }
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const temp = document.createElement('div'); temp.innerHTML = html;
+      const frag = document.createDocumentFragment();
+      while (temp.firstChild) frag.appendChild(temp.firstChild);
+      range.insertNode(frag);
+      sel.removeAllRanges();
+      const r2 = document.createRange();
+      r2.setStartAfter(range.endContainer); r2.collapse(true);
+      try{ sel.addRange(r2); }catch(_){}
     }
 
-    /* ===== Pagination & page dividers ===== */
-    function pageFromOuter(outer){ return outer.querySelector('.page'); }
-    function nextPage(page){
-      const outer=page.closest('.page-outer'); let n=outer && outer.nextElementSibling;
-      while(n && n.classList.contains('page-divider')) n=n.nextElementSibling;
-      return n && n.classList.contains('page-outer') ? pageFromOuter(n) : null;
-    }
-    function ensureNextPage(page){
-      const n=nextPage(page);
-      if(n) return n;
-      const outer=createPageOuter('');
-      const curOuter=page.closest('.page-outer');
-      curOuter.parentNode.insertBefore(outer, curOuter.nextSibling);
-      return pageFromOuter(outer);
-    }
-
+    /* ===== Pagination ===== */
     function updatePageDividers(){
-      const root=editor.pageRoot; if(!root) return;
+      const root = editor.pageRoot; if(!root) return;
       Array.from(root.querySelectorAll('.page-divider')).forEach(n=>n.remove());
-      const outers=Array.from(root.querySelectorAll('.page-outer'));
-      for(let i=0;i<outers.length-1;i++){
-        const div=document.createElement('div');
-        div.className='page-divider';
-        div.innerHTML='<div class="line"></div><div class="badge">— NEW PAGE —</div>';
-        outers[i].insertAdjacentElement('afterend', div);
-      }
-      fitPagesToWidth(); // 구분선 폭도 맞춤
+      const pages = Array.from(root.querySelectorAll('.page'));
+      pages.forEach((p, i)=>{
+        if (i < pages.length-1){
+          const div = document.createElement('div');
+          div.className = 'page-divider';
+          div.innerHTML = `<div class="line"></div><div class="badge">— PAGE ${i+1} —</div>`;
+          p.insertAdjacentElement('afterend', div);
+        }
+      });
     }
 
     function reflowPagesDeferred(){
-      if(!PAGE.enabled) return;
-      if(PAGE.pending) return;
-      PAGE.pending=true;
-      rIC(()=>{ try{ reflowAllPages(); } finally{ PAGE.pending=false; autosave(); fitPagesToWidth(); } });
+      if (!PAGE.enabled) return;
+      if (PAGE.pendingReflow) return;
+      PAGE.pendingReflow = true;
+      rIC(()=>{ try{ reflowAllPages(); } finally{ PAGE.pendingReflow = false; autosave(); } });
     }
 
     function reflowAllPages(){
-      const root=editor.pageRoot; if(!root) return;
-      // 구분선 제거 후 계산
+      const root = editor.pageRoot; if (!root) return;
+      ensureAtLeastOnePage();
+
+      // 구분선 삭제
       Array.from(root.querySelectorAll('.page-divider')).forEach(n=>n.remove());
 
-      let pages=Array.from(root.querySelectorAll('.page'));
-      if(pages.length===0){
-        root.appendChild(createPageOuter('')); pages=[root.querySelector('.page')];
-      }
-
-      // 넘치는 콘텐츠 아래로 이동
-      pages.forEach(p=> shiftOverflowDown(p));
-      // 공간 남으면 위에서 끌어오기
-      pages.forEach(p=> pullUpIfSpace(p));
+      // 페이지별 넘침 아래로 이동
+      const pages = Array.from(root.querySelectorAll('.page'));
+      for (let i=0; i<pages.length; i++){ shiftOverflowDown(pages[i]); }
+      for (let i=0; i<pages.length; i++){ pullUpIfSpace(pages[i]); }
 
       // 빈 페이지 제거
-      const outers=Array.from(root.querySelectorAll('.page-outer'));
-      for(let i=outers.length-1;i>0;i--){
-        const pg=pageFromOuter(outers[i]);
-        if(pg && pg.innerHTML.trim()===''){ outers[i].remove(); }
-      }
+      const all = Array.from(root.querySelectorAll('.page'));
+      for (let i=all.length-1; i>0; i--){ if (all[i].innerHTML.trim()===''){ all[i].remove(); } }
 
       updatePageDividers();
     }
 
     function shiftOverflowDown(page){
-      const MAX=2000; let guard=0;
-      while(page.scrollHeight > page.clientHeight + 1 && guard++<MAX){
-        let np=nextPage(page); if(!np) np=ensureNextPage(page);
+      const MAX_LOOP = 2000; let guard=0;
+      while (page.scrollHeight > page.clientHeight + 1 && guard++ < MAX_LOOP){
+        let next = page.nextElementSibling;
+        if (!next || !next.classList.contains('page')){
+          next = document.createElement('section'); next.className='page'; next.setAttribute('contenteditable','true');
+          page.parentNode.insertBefore(next, page.nextSibling);
+        }
+        let last = page.lastChild;
+        if (!last) break;
+        if (last.nodeType === Node.TEXT_NODE){
+          const p = document.createElement('p'); p.textContent = last.textContent; page.removeChild(last); page.appendChild(p); last = p;
+        }
+        if (last.nodeType !== Node.ELEMENT_NODE){ next.insertBefore(last, next.firstChild); continue; }
+        if (last.tagName === 'IMG'){ next.insertBefore(last, next.firstChild); continue; }
+        if (last.offsetHeight > page.clientHeight - 8){
+          splitElementToNext(last, page, next);
+          continue;
+        }
+        next.insertBefore(last, next.firstChild);
+      }
+    }
 
-        let last=page.lastChild; if(!last) break;
-        if(last.nodeType===Node.TEXT_NODE){
-          const p=document.createElement('p'); p.textContent=last.textContent; page.removeChild(last); page.appendChild(p); last=p;
-        }
-        if(last.nodeType!==Node.ELEMENT_NODE){ np.insertBefore(last, np.firstChild); continue; }
-        if(last.tagName==='IMG'){ np.insertBefore(last, np.firstChild); continue; }
-        if(last.offsetHeight > page.clientHeight - 8){
-          splitElementToNext(last, page, np); continue;
-        }
-        np.insertBefore(last, np.firstChild);
-      }
-    }
     function pullUpIfSpace(page){
-      const np=nextPage(page); if(!np) return;
+      const next = page.nextElementSibling;
+      if (!next || !next.classList.contains('page')) return;
       let safety=0;
-      while(np.firstChild && (page.scrollHeight + (np.firstChild.offsetHeight||0)) <= page.clientHeight - 2 && safety++<2000){
-        page.appendChild(np.firstChild);
+      while (next.firstChild && (page.scrollHeight + (next.firstChild.offsetHeight||0)) <= page.clientHeight - 2 && safety++<2000){
+        page.appendChild(next.firstChild);
       }
-      if(np.innerHTML.trim()===''){
-        const outer=np.closest('.page-outer'); if(outer) outer.remove();
-      }
+      if (next.innerHTML.trim()===''){ next.remove(); }
     }
-    function splitElementToNext(el, page, np){
-      if(el.childNodes && el.childNodes.length>1){
+
+    function splitElementToNext(el, page, next){
+      if (el.childNodes && el.childNodes.length > 1){
         let safety=0;
-        while(page.scrollHeight > page.clientHeight + 1 && el.lastChild && safety++<2000){
-          const child=el.lastChild;
-          if(child.nodeType===Node.TEXT_NODE){
-            const p=document.createElement('p'); p.textContent=child.textContent; el.removeChild(child); el.appendChild(p);
-            splitElementToNext(p, page, np);
-          }else if(child.nodeType===Node.ELEMENT_NODE){
-            if(child.tagName==='IMG'){ np.insertBefore(child, np.firstChild); }
-            else if(child.offsetHeight > page.clientHeight - 8){ splitElementToNext(child, page, np); }
-            else{ np.insertBefore(child, np.firstChild); }
+        while (page.scrollHeight > page.clientHeight + 1 && el.lastChild && safety++<2000){
+          const child = el.lastChild;
+          if (child.nodeType === Node.TEXT_NODE){
+            const p = document.createElement('p'); p.textContent = child.textContent; el.removeChild(child); el.appendChild(p);
+            splitElementToNext(p, page, next);
+          }else if (child.nodeType === Node.ELEMENT_NODE){
+            if (child.tagName === 'IMG'){ next.insertBefore(child, next.firstChild); }
+            else if (child.offsetHeight > page.clientHeight - 8){ splitElementToNext(child, page, next); }
+            else{ next.insertBefore(child, next.firstChild); }
           }else{
-            np.insertBefore(child, np.firstChild);
+            next.insertBefore(child, next.firstChild);
           }
         }
-        if(!el.childNodes.length){ el.remove(); }
+        if (!el.childNodes.length){ el.remove(); }
         return;
       }
-      if(el.childNodes.length===1 && el.firstChild.nodeType===Node.TEXT_NODE){ binarySplitTextElement(el, page, np); return; }
-      np.insertBefore(el, np.firstChild);
-    }
-    function binarySplitTextElement(el, page, np){
-      const full=el.textContent||''; if(!full.trim()){ np.insertBefore(el, np.firstChild); return; }
-      let low=1, high=full.length, fit=0, original=full;
-      while(low<=high){
-        const mid=(low+high)>>1;
-        el.textContent=original.slice(0, mid);
-        if(page.scrollHeight <= page.clientHeight){ fit=mid; low=mid+1; } else { high=mid-1; }
+      if (el.childNodes.length === 1 && (el.firstChild.nodeType === Node.TEXT_NODE)){
+        binarySplitTextElement(el, page, next);
+        return;
       }
-      const rest=original.slice(fit);
-      if(rest.length){
-        const clone=el.cloneNode(false); clone.textContent=rest;
-        np.insertBefore(clone, np.firstChild);
-      }
+      next.insertBefore(el, next.firstChild);
     }
 
-    /* ===== Fit to width (가로 꽉 차게 스케일) ===== */
-    function fitPagesToWidth(){
-      const area=document.getElementById('editorArea'); if(!area) return;
-      const avail=Math.max(100, area.clientWidth - 24); // 좌우 padding 12px
-      let scaledW=0;
-      const outers=Array.from(editor.pageRoot.querySelectorAll('.page-outer'));
-      outers.forEach(outer=>{
-        const page=pageFromOuter(outer); if(!page) return;
-        const pw=page.offsetWidth, ph=page.offsetHeight;
-        const scale=Math.max(0.2, avail / pw);
-        page.style.transform=`scale(${scale})`;
-        outer.style.height=(ph*scale)+'px';
-        scaledW = pw*scale; // 마지막 값으로 구분선 폭 세팅
-      });
-      Array.from(editor.pageRoot.querySelectorAll('.page-divider')).forEach(div=>{
-        div.style.width = scaledW ? (scaledW+'px') : '100%';
-        div.style.marginLeft='auto'; div.style.marginRight='auto';
-      });
+    function binarySplitTextElement(el, page, next){
+      const full = el.textContent || '';
+      if (!full.trim()){ next.insertBefore(el, next.firstChild); return; }
+      let low = 1, high = full.length, fit = 0;
+      const original = full;
+      while (low <= high){
+        const mid = (low + high) >> 1;
+        el.textContent = original.slice(0, mid);
+        if (page.scrollHeight <= page.clientHeight){ fit = mid; low = mid + 1; }
+        else { high = mid - 1; }
+      }
+      const rest = original.slice(fit);
+      if (rest.length){
+        const clone = el.cloneNode(false);
+        clone.textContent = rest;
+        next.insertBefore(clone, next.firstChild);
+      }
     }
 
     /* ===== Toast ===== */
     function initToast(){
-      const div=document.createElement('div');
+      const div = document.createElement('div');
       div.style.position='fixed'; div.style.left='50%'; div.style.bottom='24px'; div.style.transform='translateX(-50%)';
       div.style.padding='10px 14px'; div.style.border='1px solid #E5E7EB'; div.style.background='#fff'; div.style.borderRadius='10px';
       div.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'; div.style.fontSize='13px'; div.style.color='#111827';
       div.style.display='none'; div.style.zIndex='9999';
       document.body.appendChild(div);
-      window.toast=(msg)=>{ div.textContent=msg; div.style.display='block'; setTimeout(()=> div.style.display='none', 1200); };
+      window.toast = (msg)=>{ div.textContent = msg; div.style.display='block'; setTimeout(()=> div.style.display='none', 1200); };
     }
 
     /* ===== Init ===== */
     function initNotePanelAndEditor(){
-      const lastNodeGlobal=localStorage.getItem('fw_last_node_global');
-      let initialProject=null;
-      if(lastNodeGlobal){ const [pid]=splitFullPath(lastNodeGlobal); const p=getProjectById(pid); if(p) initialProject=p; }
-      if(!initialProject){
-        const list=getProjectList(); const lastPid=localStorage.getItem(LAST_ID_KEY);
-        initialProject=(lastPid && getProjectById(lastPid)) || (list && list[0]) || getDraft() || null;
+      const lastNodeGlobal = localStorage.getItem(LAST_NODE_GLOBAL);
+      let initialProject = null;
+
+      if (lastNodeGlobal){
+        const [pid] = splitFullPath(lastNodeGlobal);
+        const p = getProjectById(pid);
+        if (p){ initialProject = p; }
       }
-      if(!initialProject){
-        const root=document.getElementById('tocRoot');
-        if(root) root.innerHTML='<div class="text-[13px] text-gray-500">복원할 프로젝트가 없습니다. Projects에서 새로 생성해 주세요.</div>';
+      if (!initialProject){
+        const list = getProjectList();
+        const lastPid = localStorage.getItem(LAST_ID_KEY);
+        initialProject = (lastPid && getProjectById(lastPid)) || (list && list[0]) || getDraft() || null;
+      }
+
+      if (!initialProject){
+        const root = document.getElementById('tocRoot');
+        if (root) root.innerHTML = '<div class="text-[13px] text-gray-500">복원할 프로젝트가 없습니다. Projects에서 새로 생성해 주세요.</div>';
         return;
       }
 
-      CURRENT_PROJECT=initialProject; CURRENT_PID=initialProject.id; localStorage.setItem(LAST_ID_KEY, CURRENT_PID);
+      CURRENT_PROJECT = initialProject;
+      CURRENT_PID = initialProject.id;
+      localStorage.setItem(LAST_ID_KEY, CURRENT_PID);
+
       rerenderToc();
 
-      editor.pageRoot=document.getElementById('pageRoot');
-      editor.title=document.getElementById('docTitle');
-      editor.saveBtn=document.getElementById('manualSave');
-      editor.tagRow=document.getElementById('tagRow');
-      editor.addTagBtn=document.getElementById('addTagBtn');
+      editor.pageRoot = document.getElementById('pageRoot');
+      editor.title    = document.getElementById('docTitle');
+      editor.saveBtn  = document.getElementById('manualSave');
+      editor.tagRow   = document.getElementById('tagRow');
+      editor.addTagBtn = document.getElementById('addTagBtn');
 
+      // 최초 페이지
       ensureAtLeastOnePage();
       updatePageDividers();
-      fitPagesToWidth();
 
-      editor.pageRoot.addEventListener('input', ()=>{ if(PAGE.enabled) reflowPagesDeferred(); });
+      // 입력/저장
+      editor.pageRoot.addEventListener('input', ()=>{ if (PAGE.enabled) reflowPagesDeferred(); autosave(); });
       editor.title.addEventListener('input', autosave);
       editor.saveBtn?.addEventListener('click', saveCurrentDoc);
 
+      // 태그 추가
       editor.addTagBtn?.addEventListener('click', ()=>{
-        if(!CURRENT_NODE_PATH){ toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
-        const [, sub]=splitFullPath(CURRENT_NODE_PATH);
-        const t=prompt('태그 입력'); if(!t) return;
-        const arr=safeParse(localStorage.getItem(tagKeyFor(CURRENT_PID, sub)),[]); arr.push(t);
-        localStorage.setItem(tagKeyFor(CURRENT_PID, sub), JSON.stringify(arr)); renderTagsFor(CURRENT_PID, sub);
+        if (!CURRENT_NODE_PATH){ toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
+        const [, sub] = splitFullPath(CURRENT_NODE_PATH);
+        const t = prompt('태그 입력'); if(!t) return;
+        const arr = safeParse(localStorage.getItem(tagKeyFor(CURRENT_PID, sub)), []);
+        arr.push(t); localStorage.setItem(tagKeyFor(CURRENT_PID, sub), JSON.stringify(arr));
+        renderTagsFor(CURRENT_PID, sub);
       });
 
-      const fallback='psst/p';
-      const startPath=lastNodeGlobal || `${CURRENT_PID}::${fallback}`;
-      openNodeDocument(startPath, lastNodeGlobal?null:'P');
+      // 시작 문서: 폴더(id::psst)는 회피하고 기본은 P
+      const fallbackSub = 'psst/p';
+      let startPath = lastNodeGlobal || `${CURRENT_PID}::${fallbackSub}`;
+      if (startPath.endsWith('::psst')) startPath = `${CURRENT_PID}::${fallbackSub}`;
+      openNodeDocument(startPath, lastNodeGlobal ? null : 'P');
 
-      renderBmcCards(); renderUserMemos();
-      window.addEventListener('resize', ()=> fitPagesToWidth());
+      renderBmcCards();
+      renderUserMemos();
     }
 
     function initSidebarAndPanels(){
-      initSidebar(); initToast(); initTabs(); initChat();
-      document.getElementById('linkBtn')?.addEventListener('click', ()=>{
-        if(!CURRENT_NODE_PATH){ toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
-        const [pid, sub]=splitFullPath(CURRENT_NODE_PATH);
-        const linked={ at:Date.now(), projectId:pid, node:sub, title:document.getElementById('docTitle').value || sub };
-        localStorage.setItem('fw_linked_note', JSON.stringify(linked));
-        toastOnce('노트를 연결했습니다.');
-      });
-      document.getElementById('memoAddBtn')?.addEventListener('click', ()=>{ const memos=loadUserMemos(); memos.push({id:Date.now(), text:'', updatedAt:Date.now()}); saveUserMemos(memos); renderUserMemos(true); });
+      initSidebar();
+      initToast();
+      initTabs();
+      initChat();
     }
+
+    function initDragPasteAndToolbar(){
+      initToolbar();
+      initRichPaste();
+      initDragAndDrop();
+    }
+
+    // 좌측 하단 버튼
+    document.getElementById('linkBtn')?.addEventListener('click', ()=>{
+      if (!CURRENT_NODE_PATH) { toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
+      const [pid, sub] = splitFullPath(CURRENT_NODE_PATH);
+      const linked = { at: Date.now(), projectId: pid, node: sub, title: document.getElementById('docTitle').value || sub };
+      localStorage.setItem('fw_linked_note', JSON.stringify(linked));
+      toastOnce('노트를 연결했습니다.');
+    });
+    document.getElementById('memoAddBtn')?.addEventListener('click', ()=>{ const memos = loadUserMemos(); memos.push({ id: Date.now(), text:'', updatedAt: Date.now() }); saveUserMemos(memos); renderUserMemos(true); });
 
     window.addEventListener('load', ()=>{
       initSidebarAndPanels();
       initNotePanelAndEditor();
-      initToolbar();
-      initDragAndPaste();
+      initDragPasteAndToolbar();
     });
   </script>
 </body>

@@ -212,6 +212,66 @@ FILE: projects-list.html  (Projects 리스트 전용)
     }
     .new-proj-card .plus{ font-size:36px; line-height:1; color:#9CA3AF; }
     .new-proj-card .label{ font-size:13px; font-weight:700; color:#9CA3AF; }
+
+    /* 역할 선택 모달 */
+    #roleModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      z-index: 10000;
+    }
+    #roleModal .modal-content {
+      background: #fff;
+      color: #000;
+      border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 32px 24px;
+      width: 90%;
+      max-width: 420px;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    #roleModal h2 {
+      font-size: 20px;
+      font-weight: 700;
+      text-align:center;
+    }
+    #roleModal .role-options {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    #roleModal .role-btn {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 16px;
+      border-radius:8px;
+      border:1px solid rgba(0,0,0,0.1);
+      background:#f9fafb;
+      font-size:14px;
+      font-weight:600;
+      color:#111827;
+      text-decoration:none;
+      transition:background-color .12s ease;
+    }
+    #roleModal .role-btn:hover {
+      background:#f3f4f6;
+    }
+    #roleModal .close-btn {
+      margin-top:8px;
+      text-align:center;
+      font-size:13px;
+      color:#6b7280;
+      cursor:pointer;
+    }
   </style>
 </head>
 
@@ -320,6 +380,19 @@ FILE: projects-list.html  (Projects 리스트 전용)
       </div>
     </section>
   </main>
+
+  <!-- 역할 선택 모달 -->
+  <div id="roleModal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>새 프로젝트 역할 선택</h2>
+      <div class="role-options">
+        <a href="projects-create-1.html?new=1" class="role-btn">예비창업자용 프로젝트</a>
+        <a href="projects-create-founder-1.html" class="role-btn">기창업자용 프로젝트</a>
+        <a href="projects-create-author-1.html" class="role-btn">작가용 프로젝트</a>
+      </div>
+      <div class="close-btn" id="roleModalClose">닫기</div>
+    </div>
+  </div>
 
   <script>
     /* ===== 고정: 리스트 전용 ===== */
@@ -563,9 +636,11 @@ FILE: projects-list.html  (Projects 리스트 전용)
 
     /* ===== 라우팅 ===== */
     function newProject(){
+      // 역할 선택 모달 표시
       try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
       window.__fw_draft_id = null;
-      location.href = 'projects-create-1.html?new=1';
+      const modal = document.getElementById('roleModal');
+      if(modal){ modal.style.display = 'flex'; }
     }
     function openProject(projectId){
       const list = JSON.parse(localStorage.getItem(LIST_KEY) || '[]');
@@ -575,6 +650,21 @@ FILE: projects-list.html  (Projects 리스트 전용)
         window.__fw_draft_id = found.id;
       }
       location.href = 'projects-create-1.html';
+    }
+
+    // ==== 역할 선택 모달 닫기 이벤트 ====
+    const roleModal = document.getElementById('roleModal');
+    const roleModalClose = document.getElementById('roleModalClose');
+    if(roleModalClose){
+      roleModalClose.addEventListener('click', ()=>{
+        if(roleModal){ roleModal.style.display = 'none'; }
+      });
+    }
+    if(roleModal){
+      roleModal.addEventListener('click', (ev)=>{
+        // 클릭한 대상이 오버레이 바깥인 경우 모달을 닫음
+        if(ev.target === roleModal){ roleModal.style.display = 'none'; }
+      });
     }
 
     /* ===== 부팅 ===== */
