@@ -1,13 +1,12 @@
 <!-- =========================================================
 FILE: editor.html
 업데이트 요약:
-- 우측 탭 3개(챗봇/메모/추천) 가로 꽉 채워 1/3씩 균등폭 + 선택 탭: 흰색 라운드 박스
-- 우측 기본 활성 탭을 "메모"로 변경
-- 메모 탭 상단: 메모 검색, Add memo 버튼, write anything 입력 박스 추가
-  · 검색 시 리스트 필터링
-  · Add memo/Ctrl+Enter 로 메모 추가
-  · 기존 하단 "+ 메모 추가" 버튼도 유지
-- 좌측 목차 헤더에 현재 프로젝트명 표시(“목차 — {프로젝트명}”)
+- 목차(PSST 하위 항목) 드래그앤드롭 재정렬 + 로컬 저장(persist)
+- 에디터 텍스트 드래그/선택 하이라이트 복원(볼드/이탤릭 등 정상 동작)
+- 정렬 버튼 아이콘을 워드/한글 스타일 SVG(좌/중앙/우)로 교체
+- 표 버튼: 기본 2×2 삽입, 표 위/옆에 +버튼(행/열 추가) 노션식 UX
+- 나머지 기존 기능(이미지 리사이즈/페이지뷰/메모/추천 등) 유지
+- 우측 챗봇 탭: 로컬 API(http://localhost:3000/api/chat) 연동 + 대화 로컬 저장
 ========================================================= -->
 <!doctype html>
 <html lang="ko" class="dark">
@@ -114,6 +113,12 @@ FILE: editor.html
     .is-active{ outline:2px solid #3655ff55; }
     .is-collapsed > .toc-children{ display:none; }
 
+    /* DnD 표시 */
+    .node[draggable="true"]{ cursor:grab; }
+    .node.dragging{ opacity:.5; }
+    .drop-marker-before{ box-shadow: inset 0 2px 0 #3655ff; }
+    .drop-marker-after{  box-shadow: inset 0 -2px 0 #3655ff; }
+
     /* ===== 중앙 ===== */
     .center-wrap{ flex:1 1 auto; min-width:0; background:var(--canvas-bg); display:flex; flex-direction:column; height:100vh; }
     .doc-topbar{ height:var(--docbar-h); display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--divider); padding:0 14px; background:var(--canvas-bg); position:sticky; top:0; z-index:5; }
@@ -176,8 +181,9 @@ FILE: editor.html
     .page h1{ font-size:24px; font-weight:800; margin:0 0 16px; }
     .page h2{ font-size:20px; font-weight:700; margin:14px 0; }
     .page h3{ font-size:16px; font-weight:700; margin:12px 0; }
-    .page table{ width:100%; border-collapse:collapse; margin:10px 0; }
+    .page table{ width:100%; border-collapse:collapse; margin:10px 0; table-layout:fixed; }
     .page th,.page td{ border:1px solid #e5e7eb; padding:6px 8px; font-size:13px; vertical-align:top; }
+    .page td:empty::after{ content:'\00a0'; } /* 빈칸 클릭 용이 */
     .page img{
       display:block; margin:8px auto;
       max-width:100%; height:auto;
@@ -194,28 +200,28 @@ FILE: editor.html
     .page-root[data-page-view="false"] .page-divider{ display:none; }
 
     .editor-placeholder:empty::before{
-      content:'클릭하여 작성을 시작하세요. 좌측 목차에서 문서를 전환할 수 있습니다.';
+      content:'클릭하여 작성을 시작하세요. 좌측 목차에서 문서를 전환할 수 있습니다.'; 
       color:#9CA3AF;
     }
 
-    /* ===== 중앙 텍스트 입력 하이라이트 제거 ===== */
+    /* ===== 중앙 텍스트 입력: 포커스/선택 ===== */
     .doc-title:focus,
     .page:focus,
     .page *:focus{ outline:none !important; box-shadow:none !important; }
-    .page ::selection{ background:transparent; color:inherit; }
-    .page ::-moz-selection{ background:transparent; color:inherit; }
+    /* ✅ 드래그/선택 하이라이트 복원 */
+    .page ::selection{ background:rgba(54,85,255,0.22); color:inherit; }
+    .page ::-moz-selection{ background:rgba(54,85,255,0.22); color:inherit; }
+    .doc-title::selection,
+    .chat-input::selection,
+    .memo-input::selection{ background:rgba(54,85,255,0.22); color:inherit; }
+    .doc-title::-moz-selection,
+    .chat-input::-moz-selection,
+    .memo-input::-moz-selection{ background:rgba(54,85,255,0.22); color:inherit; }
 
-    /* ★ 모든 텍스트 박스 포커스/선택 하이라이트 제거 */
     input[type="text"]:focus,
     textarea:focus,
     .chat-input:focus,
     .memo-input:focus{ outline:none !important; box-shadow:none !important; border-color:#D1D5DB; }
-    .doc-title::selection,
-    .chat-input::selection,
-    .memo-input::selection{ background:transparent; color:inherit; }
-    .doc-title::-moz-selection,
-    .chat-input::-moz-selection,
-    .memo-input::-moz-selection{ background:transparent; color:inherit; }
 
     /* ===== 우측 패널 ===== */
     .right-col{ width:var(--right-w); background:#FAFAFB; display:flex; flex-direction:column; height:100vh; border-left:1px solid var(--divider); color:#111827; }
@@ -283,6 +289,13 @@ FILE: editor.html
       padding:6px; gap:6px;
     }
     #imgToolbar .btn{ border:1px solid #D1D5DB; background:#fff; padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer; }
+
+    /* ===== 표 오버레이(노션식 + 버튼) ===== */
+    .tbl-plus-btn{
+      position:fixed; z-index:60; width:22px; height:22px; border-radius:6px;
+      border:1px solid #D1D5DB; background:#fff; display:none; align-items:center; justify-content:center;
+      font-size:16px; line-height:1; box-shadow:0 1px 2px rgba(0,0,0,.06); cursor:pointer; user-select:none;
+    }
   </style>
 </head>
 
@@ -309,7 +322,7 @@ FILE: editor.html
 
     <nav class="sidebar-nav-container text-sm">
       <a href="home.html" class="sidebar-nav-btn mb-[4px] hover:bg-white/10">
-        <img src="home_assets/Main_icon.svg" alt="Main" class="w-[20px] h-[20px] object-contain" loading="lazy"/>
+        <img src="home_assets/Main_icon.svg" alt="Main" class="w/[20px] h/[20px] object-contain" loading="lazy"/>
         <span class="nav-label">Main</span>
       </a>
       <a href="editor.html" class="sidebar-nav-btn mb/[4px] bg-white/10 hover:bg-white/15">
@@ -349,7 +362,7 @@ FILE: editor.html
   <!-- MOBILE NAV -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center border-t border-white/10 backdrop-blur-md mobile-nav-bg" style="height:var(--mobile-nav-h);">
     <a href="home.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
-      <img src="home_assets/Main_icon.svg" alt="Main" class="w-[24px] h-[24px] object-contain" loading="lazy"/><span>Main</span>
+      <img src="home_assets/Main_icon.svg" alt="Main" class="w/[24px] h/[24px] object-contain" loading="lazy"/><span>Main</span>
     </a>
     <a href="editor.html" class="flex flex-col items-center gap-1 text-[11px] text-white/70">
       <img src="home_assets/Editor_icon.svg" alt="Editor" class="w/[24px] h/[24px] object-contain" loading="lazy"/><span>Editor</span>
@@ -389,25 +402,12 @@ FILE: editor.html
         <button id="addTagBtn" class="tag-add">+ 태그 추가</button>
       </div>
       <div class="toolbar-row">
-        <button class="tbtn" data-cmd="bold">B</button>
+        <!-- ✅ 남겨둔 버튼: 굵게/기울기/밑줄/표/이미지 -->
+        <button class="tbtn" data-cmd="bold"><b>B</b></button>
         <button class="tbtn" data-cmd="italic"><i>I</i></button>
         <button class="tbtn" data-cmd="underline"><u>U</u></button>
-        <div class="tsep"></div>
-        <button class="tbtn" data-cmd="justifyLeft">⟸</button>
-        <button class="tbtn" data-cmd="justifyCenter">↔</button>
-        <button class="tbtn" data-cmd="justifyRight">⟹</button>
-        <div class="tsep"></div>
-        <button class="tbtn" id="codeBtn">&lt;&gt;</button>
-        <button class="tbtn" id="linkBtnEditor">🔗</button>
-        <button class="tbtn" id="imgBtn">🖼️</button>
         <button class="tbtn" id="tableBtn">▦ 표</button>
-        <div class="tsep"></div>
-        <button class="tbtn" id="imgZoomIn">🖼️＋</button>
-        <button class="tbtn" id="imgZoomOut">🖼️－</button>
-        <button class="tbtn" id="imgFit">🖼️=</button>
-        <div class="tsep"></div>
-        <button class="tbtn" id="pageViewBtn">📄 페이지</button>
-        <button class="tbtn">🧩 캔버스</button>
+        <button class="tbtn" id="imgBtn">🖼️</button>
         <input id="imgFile" type="file" accept="image/*" multiple style="display:none"/>
       </div>
     </div>
@@ -518,6 +518,10 @@ FILE: editor.html
     <button class="btn" data-act="fit">=</button>
   </div>
 
+  <!-- 표 + 버튼(노션식) -->
+  <div id="tblAddColBtn" class="tbl-plus-btn" title="열 추가">+</div>
+  <div id="tblAddRowBtn" class="tbl-plus-btn" title="행 추가">+</div>
+
   <script>
     /* ===== Polyfills ===== */
     (function(){
@@ -546,12 +550,14 @@ FILE: editor.html
     const rIC = window.requestIdleCallback || function(cb){ return setTimeout(cb, 1); };
 
     /* ===== Keys/State ===== */
+    const CHAT_API_URL = 'http://localhost:3000/api/chat';
     const LIST_KEY='fw_projects', DRAFT_KEY='fw_project_draft_v2', LAST_ID_KEY='fw_last_project_id', LAST_NODE_GLOBAL='fw_last_node_global';
     function MEMO_KEY(pid){ return `fw_user_memos_${pid}`; }
     function docsKey(pid){ return `fw_docs_${pid}`; }
     function lastNodeKey(pid){ return `fw_last_node_${pid}`; }
     function tagKeyFor(pid, pathSub){ return `fw_editor_tags_${pid}::${pathSub}`; }
     function tocStateKey(pid){ return `fw_toc_state_${pid}`; }
+    function tocOrderKey(parentPath){ return `fw_toc_order::${parentPath}`; } // ✅ DnD 순서 저장 키
 
     let CURRENT_PROJECT=null, CURRENT_PID=null, CURRENT_NODE_PATH=null, SUSPEND_SAVE=0;
     const PAGE = { enabled:true, pendingReflow:false };
@@ -584,7 +590,7 @@ FILE: editor.html
       const pid=p.id, title=(p?.title||'무제 프로젝트').trim(), psst=p?.psst||{};
       const trim=(s)=> (String(s||'').replace(/\s+/g,' ').trim()||'—').slice(0,50);
       const root={ pid, path:`${pid}::project`, type:'project', title:`${title}`, children:[] };
-      const psGroup={ pid, path:`${pid}::psst`, type:'psstGroup', title:'PSST', isFolder:true, children:[
+      const psGroup={ pid, path:`${pid}::psst`, type:'psst', title:'PSST', isFolder:true, children:[
         { pid, path:`${pid}::psst/p`,  type:'psstP', title:`P: ${trim(psst.p)}`,  children:[] },
         { pid, path:`${pid}::psst/s1`, type:'psstS', title:`S: ${trim(psst.s1 ?? psst.s)}`, children:[] },
         { pid, path:`${pid}::psst/s2`, type:'psstS', title:`S: ${trim(psst.s2)}`, children:[] },
@@ -599,45 +605,137 @@ FILE: editor.html
       const d=getDraft(); if(d && !list.find(x=>x.id===d.id)){ nodes.push(...buildTocNodesForProject(d)); }
       return nodes;
     }
+
+    function orderChildrenIfSaved(node){
+      // 현재는 PSST 폴더 하위만 정렬 저장
+      if(node.path && node.path.endsWith('::psst') && node.children && node.children.length){
+        const saved = safeParse(localStorage.getItem(tocOrderKey(node.path)), []);
+        if(Array.isArray(saved) && saved.length){
+          const index = new Map(saved.map((sub,i)=> [sub, i]));
+          node.children.sort((a,b)=>{
+            const sa = index.get(a.path.split('::')[1]) ?? 9999;
+            const sb = index.get(b.path.split('::')[1]) ?? 9999;
+            return sa - sb;
+          });
+        }
+      }
+    }
+
     function renderTocTree(nodes){
       const root=document.getElementById('tocRoot'); if(!root) return; root.innerHTML='';
-      function badgeText(t){ const m={ project:'Project', psstGroup:'PSST', background:'BG', psstP:'P', psstS:'S', psstT:'T' }; return m[t]||t; }
-      function buildItem(node){
-        const hasChildren=!!(node.children&&node.children.length), isFolder=!!node.isFolder, state=safeParse(localStorage.getItem(tocStateKey(node.pid)),{}), expanded=state[node.path]!==false;
-        const box=document.createElement('div'); box.className='node'; box.dataset.path=node.path; box.dataset.type=node.type; box.dataset.pid=node.pid;
-        if(CURRENT_NODE_PATH===node.path) box.classList.add('is-active');
+      function badgeText(t){ const m={ project:'Project', psst:'PSST', background:'BG', psstP:'P', psstS:'S', psstT:'T' }; return m[t]||t; }
 
-        const caretEl=document.createElement('span'); caretEl.className='caret'; caretEl.textContent=hasChildren?(expanded?'▾':'▸'):'·';
+      function buildItem(node){
+        const hasChildren=!!(node.children&&node.children.length), isFolder=!!node.isFolder || node.type==='psst';
+        // 정렬 적용
+        if(isFolder) orderChildrenIfSaved(node);
+
+        const box=document.createElement('div'); box.className='node'; box.dataset.path=node.path; box.dataset.type=node.type; box.dataset.pid=node.pid;
+
+        // ✅ PSST 하위 항목만 드래그 가능
+        const isPsstChild = node.path.includes('::psst/') && !isFolder;
+        if(isPsstChild){
+          box.setAttribute('draggable','true');
+          box.dataset.draggable='true';
+          box.dataset.parent=`${node.pid}::psst`;
+          box.dataset.sub=node.path.split('::')[1]; // psst/p
+        }
+
+        if(CURRENT_NODE_PATH===node.path) box.classList.add('is-active');
+        const caretEl=document.createElement('span'); caretEl.className='caret'; caretEl.textContent=hasChildren?( (safeParse(localStorage.getItem(tocStateKey(node.pid)),{})[node.path]===false)?'▸':'▾') :'·';
         const badgeEl=document.createElement('span'); badgeEl.className='badge'; badgeEl.textContent=badgeText(node.type);
         const titleEl=document.createElement('span'); titleEl.className='title'; titleEl.textContent=node.title||'(제목없음)';
         box.appendChild(caretEl); box.appendChild(badgeEl); box.appendChild(titleEl);
 
-        const wrapEl=document.createElement('div'); wrapEl.className='toc-item'+(expanded?'':' is-collapsed');
+        const wrapEl=document.createElement('div'); wrapEl.className='toc-item';
         const liEl=document.createElement('div'); liEl.className='toc-li'; liEl.appendChild(box);
 
+        const state=safeParse(localStorage.getItem(tocStateKey(node.pid)),{}), expanded=state[node.path]!==false;
         if(hasChildren){
           const childrenWrap=document.createElement('div'); childrenWrap.className='toc-children';
           const ulEl=document.createElement('div'); ulEl.className='toc-ul';
-          node.children.forEach(ch=> ulEl.appendChild(buildItem(ch)));
+          if(expanded){
+            node.children.forEach(ch=> ulEl.appendChild(buildItem(ch)));
+          }
           childrenWrap.appendChild(ulEl); liEl.appendChild(childrenWrap);
         }
+        if(!expanded) liEl.parentElement?.classList?.add('is-collapsed');
         wrapEl.appendChild(liEl);
 
+        // 클릭/토글
         box.addEventListener('click', (ev)=>{
           const clickOnCaret=(ev.offsetX<=22);
-          if(hasChildren && (clickOnCaret||isFolder)){
-            const collapsed=liEl.classList.toggle('is-collapsed'); caretEl.textContent=collapsed?'▸':'▾';
-            const s=safeParse(localStorage.getItem(tocStateKey(node.pid)),{})||{}; s[node.path]=!collapsed; localStorage.setItem(tocStateKey(node.pid), JSON.stringify(s));
+          if(hasChildren && (clickOnCaret || isFolder)){
+            const state=safeParse(localStorage.getItem(tocStateKey(node.pid)),{})||{};
+            const collapsed = (state[node.path]!==false) ? true : false;
+            state[node.path]=!collapsed; localStorage.setItem(tocStateKey(node.pid), JSON.stringify(state));
+            rerenderToc();
           }else{
             openNodeDocument(node.path, node.title, node.pid);
             document.querySelectorAll('.node.is-active').forEach(n=> n.classList.remove('is-active'));
             box.classList.add('is-active');
           }
         });
+
         return wrapEl;
       }
+
       nodes.forEach(n=> root.appendChild(buildItem(n)));
+
+      // ✅ DnD 이벤트 위임(PSST 하위)
+      initTocDragAndDrop();
     }
+
+    function initTocDragAndDrop(){
+      const root=document.getElementById('tocRoot'); if(!root) return;
+      let drag = null;
+      root.addEventListener('dragstart', (e)=>{
+        const tgt=e.target.closest('.node[data-draggable="true"]'); if(!tgt) return;
+        drag = { parent:tgt.dataset.parent, sub:tgt.dataset.sub, el:tgt };
+        tgt.classList.add('dragging');
+        e.dataTransfer.effectAllowed='move';
+      });
+      root.addEventListener('dragend', (e)=>{
+        const el=root.querySelector('.node.dragging'); if(el) el.classList.remove('dragging');
+        root.querySelectorAll('.drop-marker-before,.drop-marker-after').forEach(n=> n.classList.remove('drop-marker-before','drop-marker-after'));
+        drag=null;
+      });
+      root.addEventListener('dragover', (e)=>{
+        if(!drag) return;
+        const tgt=e.target.closest('.node[data-parent]'); if(!tgt) return;
+        if(tgt.dataset.parent!==drag.parent) return;
+        if(tgt.dataset.sub===drag.sub) return;
+        e.preventDefault();
+        const rect=tgt.getBoundingClientRect();
+        const before = (e.clientY < rect.top + rect.height/2);
+        root.querySelectorAll('.drop-marker-before,.drop-marker-after').forEach(n=> n.classList.remove('drop-marker-before','drop-marker-after'));
+        tgt.classList.add(before?'drop-marker-before':'drop-marker-after');
+      });
+      root.addEventListener('drop', (e)=>{
+        if(!drag) return;
+        const tgt=e.target.closest('.node[data-parent]'); if(!tgt) return;
+        if(tgt.dataset.parent!==drag.parent) return;
+        if(tgt.dataset.sub===drag.sub) return;
+        e.preventDefault();
+        const parentPath = drag.parent; // e.g., "<pid>::psst"
+        const before = tgt.classList.contains('drop-marker-before');
+
+        // 현재 순서 확보 (DOM 기준)
+        const siblings = Array.from(root.querySelectorAll(`.node[data-parent="${CSS.escape(parentPath)}"]`));
+        let order = siblings.map(n=> n.dataset.sub);
+
+        // 드래그 항목 제거
+        order = order.filter(x=> x!==drag.sub);
+        // 타겟 위치 계산
+        const idx = order.indexOf(tgt.dataset.sub);
+        const insertAt = before ? idx : idx+1;
+        order.splice(insertAt, 0, drag.sub);
+
+        localStorage.setItem(tocOrderKey(parentPath), JSON.stringify(order));
+        rerenderToc();
+      });
+    }
+
     function rerenderToc(){
       renderTocTree(buildAllTocNodes());
       const active=document.querySelector(`.node[data-path="${CSS.escape(CURRENT_NODE_PATH||'')}"]`);
@@ -788,9 +886,152 @@ FILE: editor.html
       });
     }
 
+    /* ===== Chat (ChatGPT API 연동) ===== */
+    const CHAT_KEY = 'fw_editor_chat_log_v1';
+
+    function loadChatLog() {
+      return safeParse(localStorage.getItem(CHAT_KEY), []);
+    }
+
+    function saveChatLog(list) {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(list || []));
+    }
+
+    function updateChatStats() {
+      const el = document.getElementById('chatStats');
+      if (!el) return;
+      const log = loadChatLog();
+      const userCount = log.filter(m => m.role === 'user').length;
+      const botCount  = log.filter(m => m.role === 'assistant').length;
+      el.textContent = `${userCount} / ${botCount}`;
+    }
+
+    function appendChatBubble(role, text, { save = false } = {}) {
+      const logEl = document.getElementById('chatLog');
+      if (!logEl) return;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + (role === 'user' ? 'me' : 'bot');
+      bubble.textContent = text;
+      logEl.appendChild(bubble);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      if (save) {
+        const log = loadChatLog();
+        log.push({ role, text, ts: Date.now() });
+        saveChatLog(log);
+        updateChatStats();
+      }
+
+      return bubble;
+    }
+
+    function renderChatFromStore() {
+      const logEl = document.getElementById('chatLog');
+      if (!logEl) return;
+      logEl.innerHTML = '';
+
+      const log = loadChatLog();
+      log.forEach(m => appendChatBubble(m.role, m.text, { save: false }));
+
+      updateChatStats();
+    }
+
+    async function sendChatToApi(userText) {
+      const logEl = document.getElementById('chatLog');
+      if (!logEl) return;
+
+      // 1) 사용자 버블 추가 + 저장
+      appendChatBubble('user', userText, { save: true });
+
+      // 2) 로딩용 임시 버블
+      const loadingBubble = appendChatBubble('assistant', '생각 중...', { save: false });
+
+      try {
+        const docTitle = editor.title?.value || '';
+        const docText  = htmlToText(editor.pageRoot?.innerHTML || '').slice(0, 4000);
+
+        const messages = [
+          {
+            role: 'system',
+            content: [
+              '너는 FOR:WORD 에디터 안에서 예비 창업자/작가/학생이 작성 중인 문서를 도와주는 한국어 코파일럿이다.',
+              '항상 구조적으로 정리해서 답하고, 불릿/번호 리스트를 적극적으로 사용한다.',
+              '사용자의 글을 더 선명하고 실행 가능한 문장으로 다듬어 주는 데 초점을 둔다.'
+            ].join(' ')
+          },
+          {
+            role: 'user',
+            content: [
+              `현재 문서 제목: ${docTitle || '(제목 없음)'}`,
+              docText ? `문서 내용(일부):\n${docText}` : '',
+              '---',
+              `질문/요청:\n${userText}`
+            ].join('\n\n')
+          }
+        ];
+
+        const res = await fetch(CHAT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages })
+        });
+
+        if (!res.ok) {
+          throw new Error('API 응답 오류: ' + res.status);
+        }
+
+        const data = await res.json();
+        const answer = data.reply || data.message || data.content || '';
+
+        loadingBubble.textContent = answer || '(빈 응답)';
+
+        const log = loadChatLog();
+        log.push({ role: 'assistant', text: loadingBubble.textContent, ts: Date.now() });
+        saveChatLog(log);
+        updateChatStats();
+
+        logEl.scrollTop = logEl.scrollHeight;
+      } catch (err) {
+        console.error(err);
+        loadingBubble.textContent = 'API 호출 중 오류가 발생했습니다. 서버 쪽 로그를 확인해 주세요.';
+      }
+    }
+
+    function initChat() {
+      const input   = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSend');
+
+      // 기존 "이전 불러오기 / 내보내기 / 비우기" 버튼은 숨김
+      ['chatLoadOlder', 'chatExport', 'chatClear'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = 'none';
+      });
+
+      // 저장되어 있던 대화 복원
+      renderChatFromStore();
+
+      function handleSend() {
+        if (!input) return;
+        const text = (input.value || '').trim();
+        if (!text) return;
+        input.value = '';
+        sendChatToApi(text);
+      }
+
+      sendBtn?.addEventListener('click', handleSend);
+      input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+    }
+
     /* ===== Right tabs/chat/memo ===== */
     function initTabs(){
       const map=[['tab-chat','panel-chat'],['tab-memo','panel-memo'],['tab-reco','panel-reco']];
+
       function activate(id){
         map.forEach(([b,p])=>{
           const btn=document.getElementById(b);
@@ -801,9 +1042,15 @@ FILE: editor.html
         });
         if(id==='tab-reco'){ scheduleRecommendationUpdate(); }
       }
-      map.forEach(([b])=>{ const btn=document.getElementById(b); btn && btn.addEventListener('click', ()=>activate(b)); });
+
+      map.forEach(([b])=>{
+        const btn=document.getElementById(b);
+        btn && btn.addEventListener('click', ()=>activate(b));
+      });
+
       activate('tab-memo'); // 기본 활성 탭: 메모
     }
+
     function loadUserMemos(){ return safeParse(localStorage.getItem(MEMO_KEY(CURRENT_PID)), []); }
     function saveUserMemos(list){ localStorage.setItem(MEMO_KEY(CURRENT_PID), JSON.stringify(list||[])); }
     function autoGrow(ta){ if(!ta) return; const minPx=parseInt(getComputedStyle(ta).minHeight, 10) || 66; ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight, minPx)+'px'; }
@@ -834,14 +1081,27 @@ FILE: editor.html
 
         const card=document.createElement('div'); card.className='memo-card';
         const del =document.createElement('button'); del.className='memo-del'; del.textContent='삭제';
-        del.addEventListener('click', ()=>{ const cur=loadUserMemos(); cur.splice(idx,1); saveUserMemos(cur); renderUserMemos(); });
+        del.addEventListener('click', ()=>{
+          const cur=loadUserMemos();
+          cur.splice(idx,1);
+          saveUserMemos(cur);
+          renderUserMemos();
+        });
         const ta=document.createElement('textarea'); ta.className='memo-input'; ta.value=text;
-        ta.addEventListener('input', ()=>{ const cur=loadUserMemos(); cur[idx]={ ...cur[idx], text:ta.value, updatedAt:Date.now() }; saveUserMemos(cur); autoGrow(ta); });
+        ta.addEventListener('input', ()=>{
+          const cur=loadUserMemos();
+          cur[idx]={ ...cur[idx], text:ta.value, updatedAt:Date.now() };
+          saveUserMemos(cur);
+          autoGrow(ta);
+        });
         requestAnimationFrame(()=> autoGrow(ta));
         card.appendChild(del); card.appendChild(ta); listEl.appendChild(card); shown++;
 
         if(focusLast && idx===memos.length-1){
-          setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0);
+          setTimeout(()=>{
+            ta.focus();
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+          }, 0);
         }
       });
 
@@ -859,7 +1119,10 @@ FILE: editor.html
 
     function initMemoUI(){
       const memoSearch=document.getElementById('memoSearch');
-      memoSearch?.addEventListener('input', ()=>{ MEMO_FILTER=(memoSearch.value||'').trim(); renderUserMemos(); });
+      memoSearch?.addEventListener('input', ()=>{
+        MEMO_FILTER=(memoSearch.value||'').trim();
+        renderUserMemos();
+      });
 
       const addTop=document.getElementById('memoAddTop');
       addTop?.addEventListener('click', ()=> addUserMemo());
@@ -868,14 +1131,20 @@ FILE: editor.html
       const qa=document.getElementById('memoQuickAdd');
       function quickAdd(){
         const val=(qi?.value||'').trim();
-        if(!val){ toastOnce('내용을 입력하세요'); return; }
+        if(!val){
+          toastOnce('내용을 입력하세요');
+          return;
+        }
         const memos=loadUserMemos();
         memos.push({ id:Date.now(), text:val, updatedAt:Date.now() });
         saveUserMemos(memos);
-        qi.value=''; renderUserMemos(true);
+        qi.value='';
+        renderUserMemos(true);
       }
       qa?.addEventListener('click', quickAdd);
-      qi?.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key==='Enter') quickAdd(); });
+      qi?.addEventListener('keydown', (e)=>{
+        if((e.ctrlKey||e.metaKey) && e.key==='Enter') quickAdd();
+      });
     }
 
     /* ===== Toolbar ===== */
@@ -915,17 +1184,13 @@ FILE: editor.html
       });
       document.getElementById('attachBtn')?.addEventListener('click', ()=> imgFile && imgFile.click());
 
-      // ★ 표 삽입
+      // ✅ 표 삽입: 노션식 기본 2×2
       document.getElementById('tableBtn')?.addEventListener('click', ()=>{
-        let r=parseInt(prompt('행(row) 수를 입력하세요 (1~20)', '3')||'3',10);
-        let c=parseInt(prompt('열(col) 수를 입력하세요 (1~10)', '3')||'3',10);
-        if(!isFinite(r)||!isFinite(c)) return;
-        r=Math.min(Math.max(1,r),20); c=Math.min(Math.max(1,c),10);
-        insertTableAtCaret(r,c);
+        insertTableAtCaret(2,2);
         autosave(); if(PAGE.enabled) reflowPagesDeferred();
       });
 
-      // ★ 이미지 확대/축소/맞춤 (툴바 버튼)
+      // 이미지 확대/축소/맞춤 (툴바 버튼은 제거되었지만 퀵툴/핸들로 사용 가능)
       document.getElementById('imgZoomIn')?.addEventListener('click', ()=> nudgeSelectedImage(10));
       document.getElementById('imgZoomOut')?.addEventListener('click', ()=> nudgeSelectedImage(-10));
       document.getElementById('imgFit')?.addEventListener('click', ()=> fitSelectedImage());
@@ -1057,7 +1322,14 @@ FILE: editor.html
       if(!PAGE.enabled) return;
       if(PAGE.pendingReflow) return;
       PAGE.pendingReflow=true;
-      rIC(()=>{ try{ reflowAllPages(); } finally{ PAGE.pendingReflow=false; autosave(); applyAutoScale(); } });
+      rIC(()=>{
+        try{ reflowAllPages(); }
+        finally{
+          PAGE.pendingReflow=false;
+          autosave();
+          applyAutoScale();
+        }
+      });
     }
     function reflowAllPages(){
       const root=editor.pageRoot; if(!root) return;
@@ -1165,7 +1437,10 @@ FILE: editor.html
           return;
         }
         const page=root.querySelector('.page');
-        if(!page){ document.documentElement.style.setProperty('--page-scale','1'); return; }
+        if(!page){
+          document.documentElement.style.setProperty('--page-scale','1');
+          return;
+        }
 
         const style=getComputedStyle(document.documentElement);
         const curScale=parseFloat(style.getPropertyValue('--page-scale'))||1;
@@ -1218,7 +1493,10 @@ FILE: editor.html
       let norm=0;
       tf.forEach((f,t)=>{
         const w=(1+Math.log(f))*(idf.get(t)||0);
-        if(w>0){ v.set(t,w); norm+=w*w; }
+        if(w>0){
+          v.set(t,w);
+          norm+=w*w;
+        }
       });
       return {v, norm:Math.sqrt(norm)};
     }
@@ -1233,7 +1511,9 @@ FILE: editor.html
       return dot/(A.norm*B.norm);
     }
     function splitSentences(text){
-      return (text||'').split(/(?<=[\.!\?…]|[。！？]|[\.]{2,})\s+|\n+/g).map(s=>s.trim()).filter(Boolean);
+      return (text||'').split(/(?<=[\.!\?…]|[。！？]|[\.]{2,})\s+|\n+/g)
+        .map(s=>s.trim())
+        .filter(Boolean);
     }
     function bestSentenceFor(targetVec, idf, text){
       const sents=splitSentences(text).slice(0,200);
@@ -1247,17 +1527,27 @@ FILE: editor.html
     }
     function computeAndRenderRecommendations(){
       try{
-        const wrap=document.getElementById('recoList'); const info=document.getElementById('recoInfo');
+        const wrap=document.getElementById('recoList');
+        const info=document.getElementById('recoInfo');
         if(!wrap){ return; }
         wrap.innerHTML='';
-        if(!CURRENT_PID){ info.textContent='프로젝트 없음'; return; }
+        if(!CURRENT_PID){
+          info.textContent='프로젝트 없음';
+          return;
+        }
 
         const map=loadDocsMap(CURRENT_PID) || {};
         const curSub=getCurrentSub();
-        if(!curSub || !map[curSub]){ info.textContent='현재 문서를 불러오는 중…'; return; }
+        if(!curSub || !map[curSub]){
+          info.textContent='현재 문서를 불러오는 중…';
+          return;
+        }
 
         const curText=htmlToText(editor.pageRoot?.innerHTML || map[curSub].html || '');
-        if(!curText || curText.length<10){ info.textContent='현재 문서 내용이 적어 추천이 어려워요.'; return; }
+        if(!curText || curText.length<10){
+          info.textContent='현재 문서 내용이 적어 추천이 어려워요.';
+          return;
+        }
 
         const docs=[];
         Object.entries(map).forEach(([sub,doc])=>{
@@ -1266,7 +1556,10 @@ FILE: editor.html
             docs.push({sub, title:doc.title||sub, text});
           }
         });
-        if(!docs.length){ info.textContent='비교할 다른 문서가 없습니다.'; return; }
+        if(!docs.length){
+          info.textContent='비교할 다른 문서가 없습니다.';
+          return;
+        }
 
         const curTokens=tokenize(curText);
         const otherTokens=docs.map(d=> tokenize(d.text));
@@ -1280,7 +1573,10 @@ FILE: editor.html
           return { ...d, score:sim, best };
         }).sort((a,b)=> b.score-a.score).slice(0,5);
 
-        if(!scored.length){ info.textContent='추천 결과가 없습니다.'; return; }
+        if(!scored.length){
+          info.textContent='추천 결과가 없습니다.';
+          return;
+        }
         scored.forEach(item=>{
           const li=document.createElement('div'); li.className='reco-item';
           const pct=Math.round(item.score*1000)/10;
@@ -1303,8 +1599,8 @@ FILE: editor.html
       }
     }
 
-    /* ===== 표 삽입 ===== */
-    function insertTableAtCaret(rows, cols){
+    /* ===== 표 삽입 & 노션식 + 버튼 ===== */
+    function insertTableAtCaret(rows=2, cols=2){
       let html='<table><tbody>';
       for(let r=0;r<rows;r++){
         html+='<tr>';
@@ -1313,6 +1609,96 @@ FILE: editor.html
       }
       html+='</tbody></table>';
       insertHTMLAtCaret(html);
+    }
+
+    const tblAddColBtn = document.getElementById('tblAddColBtn');
+    const tblAddRowBtn = document.getElementById('tblAddRowBtn');
+    let tblHover = null; // {table, tbody, cell, row, col}
+
+    function cellInfoFromTarget(target){
+      const cell = target.closest('td,th'); if(!cell) return null;
+      const tr = cell.parentElement; if(!tr) return null;
+      const tbody = tr.closest('tbody') || tr.parentElement;
+      const table = tbody.closest('table');
+      if(!table || !tbody) return null;
+      const row = Array.from(tbody.rows).indexOf(tr);
+      const col = cell.cellIndex;
+      return { table, tbody, cell, row, col };
+    }
+
+    function positionTablePlusButtons(){
+      if(!tblHover){
+        tblAddColBtn.style.display='none';
+        tblAddRowBtn.style.display='none';
+        return;
+      }
+      const rect = tblHover.cell.getBoundingClientRect();
+      // 열 + : 셀 상단 중앙
+      tblAddColBtn.style.left = (rect.left + rect.width/2 - 11) + 'px';
+      tblAddColBtn.style.top  = (rect.top - 12) + 'px';
+      // 행 + : 셀 좌측 중앙
+      tblAddRowBtn.style.left = (rect.left - 12) + 'px';
+      tblAddRowBtn.style.top  = (rect.top + rect.height/2 - 11) + 'px';
+      tblAddColBtn.style.display='flex';
+      tblAddRowBtn.style.display='flex';
+    }
+
+    function initTableOverlay(){
+      const root=editor.pageRoot;
+      if(!root) return;
+      // 테이블 위에서 마우스 이동 감지
+      root.addEventListener('mousemove', (e)=>{
+        const info = cellInfoFromTarget(e.target);
+        if(!info){
+          tblHover=null;
+          positionTablePlusButtons();
+          return;
+        }
+        tblHover = info;
+        positionTablePlusButtons();
+      });
+      // 영역을 벗어나면 숨김
+      document.getElementById('editorArea').addEventListener('scroll', positionTablePlusButtons, {passive:true});
+      window.addEventListener('resize', positionTablePlusButtons);
+
+      // 클릭: 열 추가
+      tblAddColBtn.addEventListener('click', ()=>{
+        if(!tblHover) return;
+        const { tbody, col } = tblHover;
+        Array.from(tbody.rows).forEach(tr=>{
+          const td=document.createElement('td'); td.innerHTML='<br/>';
+          if(col >= tr.cells.length-1) tr.appendChild(td);
+          else tr.insertBefore(td, tr.cells[col+1]);
+        });
+        autosave(); if(PAGE.enabled) reflowPagesDeferred();
+        positionTablePlusButtons();
+      });
+
+      // 클릭: 행 추가
+      tblAddRowBtn.addEventListener('click', ()=>{
+        if(!tblHover) return;
+        const { tbody, row } = tblHover;
+        const ref = tbody.rows[row];
+        const newRow=document.createElement('tr');
+        const cols = ref ? ref.cells.length : 1;
+        for(let i=0;i<cols;i++){
+          const td=document.createElement('td'); td.innerHTML='<br/>';
+          newRow.appendChild(td);
+        }
+        if(row >= tbody.rows.length-1) tbody.appendChild(newRow);
+        else tbody.insertBefore(newRow, tbody.rows[row+1]);
+        autosave(); if(PAGE.enabled) reflowPagesDeferred();
+        positionTablePlusButtons();
+      });
+
+      // 에디터 영역 밖 클릭 시 숨김
+      document.addEventListener('click', (e)=>{
+        if(e.target===tblAddColBtn || e.target===tblAddRowBtn) return;
+        if(!e.target.closest('table')){
+          tblHover=null;
+          positionTablePlusButtons();
+        }
+      });
     }
 
     /* ===== 이미지 선택 & 리사이즈 ===== */
@@ -1327,7 +1713,10 @@ FILE: editor.html
       root.querySelectorAll('img').forEach(img=>{
         if(img.__fw_bound) return;
         img.__fw_bound=true;
-        img.addEventListener('click', (e)=>{ e.stopPropagation(); selectImage(img); });
+        img.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          selectImage(img);
+        });
         img.addEventListener('dblclick', ()=>{ fitImage(img); });
       });
     }
@@ -1368,9 +1757,12 @@ FILE: editor.html
       imgToolbar.style.display='none';
     }
     function positionImgUI(){
-      if(!selectedImage){ resizerEl.style.display='none'; imgToolbar.style.display='none'; return; }
+      if(!selectedImage){
+        resizerEl.style.display='none';
+        imgToolbar.style.display='none';
+        return;
+      }
       const rect=selectedImage.getBoundingClientRect();
-      const pageScale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-scale'))||1;
       // Resizer handle bottom-right
       resizerEl.style.left=(rect.right-6) + 'px';
       resizerEl.style.top =(rect.bottom-6) + 'px';
@@ -1397,7 +1789,13 @@ FILE: editor.html
       const pct=(newW/pageScale)/dragState.contW*100;
       setScale(selectedImage, pct);
     });
-    function endDrag(e){ if(dragState){ resizerEl.releasePointerCapture?.(e?.pointerId); dragState=null; autosave(); } }
+    function endDrag(e){
+      if(dragState){
+        resizerEl.releasePointerCapture?.(e?.pointerId);
+        dragState=null;
+        autosave();
+      }
+    }
     resizerEl.addEventListener('pointerup', endDrag);
     resizerEl.addEventListener('pointercancel', endDrag);
 
@@ -1426,12 +1824,20 @@ FILE: editor.html
     });
 
     // Reposition handle on scroll/resize
-    editorArea.addEventListener('scroll', positionImgUI, {passive:true});
-    window.addEventListener('resize', positionImgUI);
+    document.getElementById('editorArea').addEventListener('scroll', ()=>{
+      positionImgUI();
+      positionTablePlusButtons();
+    }, {passive:true});
+    window.addEventListener('resize', ()=>{
+      positionImgUI();
+      positionTablePlusButtons();
+    });
 
     /* ===== Right panel actions ===== */
     document.addEventListener('click', (e)=>{
-      if(e.target && e.target.id==='recoRefresh'){ scheduleRecommendationUpdate(); }
+      if(e.target && e.target.id==='recoRefresh'){
+        scheduleRecommendationUpdate();
+      }
     });
 
     /* ===== Init ===== */
@@ -1451,7 +1857,9 @@ FILE: editor.html
       }
       if(!initialProject){
         const root=document.getElementById('tocRoot');
-        if(root) root.innerHTML='<div class="text-[13px] text-gray-500">복원할 프로젝트가 없습니다. Projects에서 새로 생성해 주세요.</div>';
+        if(root){
+          root.innerHTML='<div class="text-[13px] text-gray-500">복원할 프로젝트가 없습니다. Projects에서 새로 생성해 주세요.</div>';
+        }
         return;
       }
 
@@ -1471,16 +1879,26 @@ FILE: editor.html
       ensureAtLeastOnePage();
       updatePageDividers();
 
-      editor.pageRoot.addEventListener('input', ()=>{ if(PAGE.enabled) reflowPagesDeferred(); autosave(); });
-      editor.title.addEventListener('input', ()=>{ autosave(); scheduleRecommendationUpdate(); });
+      editor.pageRoot.addEventListener('input', ()=>{
+        if(PAGE.enabled) reflowPagesDeferred();
+        autosave();
+      });
+      editor.title.addEventListener('input', ()=>{
+        autosave();
+        scheduleRecommendationUpdate();
+      });
       editor.saveBtn?.addEventListener('click', saveCurrentDoc);
 
       editor.addTagBtn?.addEventListener('click', ()=>{
-        if(!CURRENT_NODE_PATH){ toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
+        if(!CURRENT_NODE_PATH){
+          toastOnce('먼저 좌측 목차에서 문서를 선택하세요');
+          return;
+        }
         const [, sub]=splitFullPath(CURRENT_NODE_PATH);
         const t=prompt('태그 입력'); if(!t) return;
         const arr=safeParse(localStorage.getItem(tagKeyFor(CURRENT_PID, sub)), []);
-        arr.push(t); localStorage.setItem(tagKeyFor(CURRENT_PID, sub), JSON.stringify(arr));
+        arr.push(t);
+        localStorage.setItem(tagKeyFor(CURRENT_PID, sub), JSON.stringify(arr));
         renderTagsFor(CURRENT_PID, sub);
       });
 
@@ -1492,7 +1910,12 @@ FILE: editor.html
       renderBmcCards();
       renderUserMemos();
 
-      requestAnimationFrame(()=>{ applyAutoScale(); scheduleRecommendationUpdate(); bindImageClickSelect(); });
+      requestAnimationFrame(()=>{
+        applyAutoScale();
+        scheduleRecommendationUpdate();
+        bindImageClickSelect();
+        initTableOverlay();
+      });
     }
 
     function initSidebarAndPanels(){
@@ -1511,18 +1934,26 @@ FILE: editor.html
 
     // 좌측 하단 버튼
     document.getElementById('linkBtn')?.addEventListener('click', ()=>{
-      if(!CURRENT_NODE_PATH) { toastOnce('먼저 좌측 목차에서 문서를 선택하세요'); return; }
+      if(!CURRENT_NODE_PATH){
+        toastOnce('먼저 좌측 목차에서 문서를 선택하세요');
+        return;
+      }
       const [pid, sub]=splitFullPath(CURRENT_NODE_PATH);
-      const linked={ at: Date.now(), projectId: pid, node: sub, title: document.getElementById('docTitle').value || sub };
+      const linked={
+        at: Date.now(),
+        projectId: pid,
+        node: sub,
+        title: document.getElementById('docTitle').value || sub
+      };
       localStorage.setItem('fw_linked_note', JSON.stringify(linked));
       toastOnce('노트를 연결했습니다.');
     });
     document.getElementById('memoAddBtn')?.addEventListener('click', ()=> addUserMemo());
 
-    window.addEventListener('resize', ()=>{ applyAutoScale(); positionImgUI(); });
-
-    /* 챗봇 초기화 스텁(페이지 에러 방지) */
-    function initChat(){ /* TODO: implement chat later */ }
+    window.addEventListener('resize', ()=>{
+      applyAutoScale();
+      positionImgUI();
+    });
 
     window.addEventListener('load', ()=>{
       initSidebarAndPanels();
